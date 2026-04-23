@@ -1,0 +1,14 @@
+compile and run the code as follows:
+
+$ make -f makefile all
+$ ./mutator 0.5 100 100000
+$ ./mutator 0.1 100 100000
+$ ./mutator 0.9 100 100000
+
+to clean and leave just the source code
+
+$ make -f makefile clean
+
+change bitree insert -> add allocated pointer as arg -> right now doesn't have
+call it after allocating the space
+prevent's corrupting mem by allocating after traversing bitree
