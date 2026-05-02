@@ -57,7 +57,6 @@ void mark_sweep_gc(BisTree* roots) {
    }
 
    printf("sweeping()...\n");
-
    sweep();
 
    printf("gcing()...\n");
@@ -65,12 +64,10 @@ void mark_sweep_gc(BisTree* roots) {
  }
 
 void mark_compact_gc(BisTree* roots) {
-   /*
-    * mark phase:
-    * go throught all roots,
-    * traverse trees,
-    * mark reachable
-    */
+    printf("marking()...\n");
+    for (int i = 0; i < max_roots; i++) {
+        mark(roots[i].root);
+    }
 
    /*
     * compact phase:
@@ -88,6 +85,6 @@ void copy_collection_gc(BisTree* roots) {
     * traverse trees in from_space,
     * copy reachable to to_space
     */
-   printf("gcing()...\n");
-   return;
+    printf("gcing()...\n");
+    return;
 }
