@@ -24,6 +24,32 @@ void mark(BiTreeNode *root) {
     mark(root->right);
 }
 
+void sweep() {
+    while (!list_isempty(heap->freeb)) {
+        list_removefirst(heap->freeb);
+    }
+
+    _block_header *current_header = (_block_header *)heap->base;
+
+    while ((char *)current_header < heap->top) {
+        _block_header *next_header = (_block_header *)((char *)current_header + sizeof(_block_header) + current_header->size);
+
+        if ((char *)next_header > heap->top) {
+            printf("*error* invalid next header");
+            return;
+        }
+
+        if (!current_header->marked) {
+            void *payload = (char *)current_header + sizeof(_block_header);
+            list_addlast(heap->freeb, payload);
+        } else {
+            current_header->marked = 0;
+        }
+
+        current_header = next_header;
+    }
+}
+
 void mark_sweep_gc(BisTree* roots) {
    printf("marking()...\n");
    for (int i = 0; i < max_roots; i++) {
@@ -32,29 +58,7 @@ void mark_sweep_gc(BisTree* roots) {
 
    printf("sweeping()...\n");
 
-   while (!list_isempty(heap->freeb)) {
-       list_removefirst(heap->freeb);
-   }
-
-   _block_header *current_header = (_block_header *)heap->base;
-
-   while ((char *)current_header < heap->top) {
-       _block_header *next_header = (_block_header *)((char *)current_header + sizeof(_block_header) + current_header->size);
-
-       if ((char *)next_header > heap->top) {
-           printf("*error* invalid next header");
-           return;
-       }
-
-       if (!current_header->marked) {
-           void *payload = (char *)current_header + sizeof(_block_header);
-           list_addlast(heap->freeb, payload);
-       } else {
-           current_header->marked = 0;
-       }
-
-       current_header = next_header;
-   }
+   sweep();
 
    printf("gcing()...\n");
    return;
