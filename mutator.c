@@ -24,8 +24,8 @@ int main(int argc, char** argv) {
 
    /* initialize the main parameters */
    int threshold  = atoi(argv[1]);  /* an integer in (0,100) */
-   int max_roots  = atoi(argv[2]);  /* a positive integer */
-   int max_rounds = atoi(argv[3]);  /* a positive integer */   
+   max_roots  = atoi(argv[2]);  /* a positive integer */
+   int max_rounds = atoi(argv[3]);  /* a positive integer */
 
    /* initialize the heap space used to store tree nodes */
    heap  = (Heap*)malloc(sizeof(Heap));
@@ -40,17 +40,17 @@ int main(int argc, char** argv) {
    srandom(getpid());
    for( int i = 0; i < max_rounds; i++ ) {
       /* select bistree */
-      BisTree* aroot = &roots[random() % max_roots]; 
+      BisTree* aroot = &roots[random() % max_roots];
       /* toss coin */
       int toss = random() % 100;
-      if( toss > threshold ) { 
+      if( toss > threshold ) {
          /* add integer to one of the roots */
          bistree_insert(aroot, random() % MAX_KEY_VALUE);
          fprintf(stdout, "tree size is %d\n", bistree_size(aroot));
          fprintf(stdout, "(inorder traversal)\n");
          bistree_inorder(aroot);
-      } 
-      else { 
+      }
+      else {
          /* remove integer from one of the roots */
          bistree_remove(aroot, random() % MAX_KEY_VALUE);
          fprintf(stdout, "tree size is %d\n", bistree_size(aroot));

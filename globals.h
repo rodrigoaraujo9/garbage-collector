@@ -8,7 +8,9 @@
 #include "bistree.h"
 #include "heap.h"
 
-BisTree*  roots;
-Heap*     heap;
+BisTree *roots;
+Heap *heap;
+
+int max_roots;
 
 #endif

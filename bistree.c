@@ -29,47 +29,53 @@ bool bistree_lookup(BisTree* tree, int data) {
     return bitreenode_lookup(tree->root, data);
 }
 
-BiTreeNode* bitreenode_insert(BiTreeNode* node, int data) {
-   if (node == NULL) {
-      // BiTreeNode* node = (BiTreeNode*)malloc(sizeof(BiTreeNode));
-      BiTreeNode* node = (BiTreeNode*)my_malloc(sizeof(BiTreeNode));
+BiTreeNode* bitreenode_insert(BiTreeNode* node, BiTreeNode* new_node) {
+    if (node == NULL)
+        return new_node;
 
-      node->data = data;
-      node->left = NULL;
-      node->right= NULL;
-      return node;
-    }
-    else if(data < node->data)
-      node->left = bitreenode_insert(node->left, data);
+    if (new_node->data < node->data)
+        node->left = bitreenode_insert(node->left, new_node);
     else
-      node->right= bitreenode_insert(node->right, data);
+        node->right = bitreenode_insert(node->right, new_node);
+
     return node;
 }
 
 bool bistree_insert(BisTree* tree, int data) {
-   if (bistree_lookup(tree, data))
-      return false;
-   tree->root = bitreenode_insert(tree->root, data);
-   tree->size = tree->size + 1;
-   return true;
+    if (bistree_lookup(tree, data))
+        return false;
+    BiTreeNode* new_node = (BiTreeNode*)my_malloc(sizeof(BiTreeNode));
+
+    if (new_node == NULL)
+       return false;
+
+    new_node->data = data;
+    new_node->left = NULL;
+    new_node->right = NULL;
+
+    tree->root = bitreenode_insert(tree->root, new_node);
+    tree->size++;
+
+    return true;
 }
 
 BiTreeNode* bitreenode_remove(BiTreeNode* node, int data) {
-   if(data < node->data)
-      node->left = bitreenode_remove(node->left, data);
-   else if(data > node->data)
-      node->right = bitreenode_remove(node->right, data);
-   else if(node->left == NULL)
-      node = node->right;
-   else if(node->right == NULL)
-      node = node->left;
-   else {
-     BiTreeNode* lnode = node->left;
-     while(lnode->right != NULL)
-        lnode = lnode->right;
-     node->data = lnode->data;
-     node->left = bitreenode_remove(node->left, lnode->data);
-     // free(lnode);
+    if (node == NULL)
+        return NULL;
+    if(data < node->data)
+        node->left = bitreenode_remove(node->left, data);
+    else if(data > node->data)
+        node->right = bitreenode_remove(node->right, data);
+    else if(node->left == NULL)
+        node = node->right;
+    else if(node->right == NULL)
+        node = node->left;
+    else {
+        BiTreeNode* lnode = node->left;
+        while(lnode->right != NULL)
+            lnode = lnode->right;
+        node->data = lnode->data;
+        node->left = bitreenode_remove(node->left, lnode->data);
    }
    return node;
 }
