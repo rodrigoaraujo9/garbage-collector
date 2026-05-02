@@ -32,6 +32,10 @@ void mark_sweep_gc(BisTree* roots) {
 
    printf("sweeping()...\n");
 
+   while (!list_isempty(heap->freeb)) {
+       list_removefirst(heap->freeb);
+   }
+
    _block_header *current_header = (_block_header *)heap->base;
 
    while ((char *)current_header < heap->top) {
