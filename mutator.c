@@ -15,7 +15,7 @@
 #include "collector.h"
 
 #define  MAX_KEY_VALUE  1000
-#define  HEAP_SIZE      (2 * 1024)  /* 2 KByte */
+#define  HEAP_SIZE      (32 * 1024)  /* 2 KByte */
 
 Heap*    heap;      /* shared global variable */
 BisTree* roots;     /* shared global variable */
@@ -38,6 +38,11 @@ int main(int argc, char** argv) {
 
    /* add/delete integers to/from the trees */
    srandom(getpid());
+
+   /* mesure start time for the program (the main loop) */
+   clock_t start = clock();
+   gc_ticks = 0;
+
    for( int i = 0; i < max_rounds; i++ ) {
       /* select bistree */
       BisTree* aroot = &roots[random() % max_roots];
@@ -58,6 +63,13 @@ int main(int argc, char** argv) {
          bistree_inorder(aroot);
       }
    }
+
+   /* mesure time that program execution took overall (main loop)  */
+   clock_t total_ticks = clock() - start;
+
+   /* print fraction of time spent on garbage collection */
+   printf("\n%% of time spent on garbage collection: %.2f%%\n", 100.0 * ((double)gc_ticks / (double)total_ticks));
+
    /* exit gracefully */
    heap_destroy(heap);
    free(roots);

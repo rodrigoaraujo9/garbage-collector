@@ -97,7 +97,7 @@ void bitreenode_inorder(BiTreeNode* node) {
 }
 
 void bistree_inorder(BisTree* tree) {
-   printf("root: %p\n", tree);
+   printf("root: %p\n", tree->root);
    bitreenode_inorder(tree->root);
    printf("\n");
 }

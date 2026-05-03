@@ -10,20 +10,6 @@
 #include "heap.h"
 #include "list.h"
 
-void updateReferences(BiTreeNode *node){
-    if (node == NULL) return;
-
-    if (node->left != NULL) {
-        _block_header *header = (_block_header *)((char *)node->left - sizeof(_block_header));
-        node->left = header->forward;
-    }
-
-    if (node->right != NULL) {
-        _block_header *header = (_block_header *)((char *)node->right - sizeof(_block_header));
-        node->right = header->forward;
-    }
-}
-
 void mark(BiTreeNode *node) {
     if (node == NULL) return;
 
@@ -83,6 +69,8 @@ void compact(BisTree *roots) {
         if (header->marked) {
             header->forward = dest + sizeof(_block_header);
             dest += sizeof(_block_header) + header->size;
+        } else {
+            header->forward = NULL;
         }
 
         scan = next;
@@ -97,7 +85,7 @@ void compact(BisTree *roots) {
         BiTreeNode *ref = roots[i].root;
         if (ref != NULL) {
             _block_header *header = (_block_header *)((char *)ref - sizeof(_block_header));
-            roots[i].root = header->forward;
+            roots[i].root = (BiTreeNode *)header->forward;
         }
     }
 
@@ -108,7 +96,18 @@ void compact(BisTree *roots) {
         char *next = scan + sizeof(_block_header) + header->size;
         if (header->marked) {
             BiTreeNode *root = (BiTreeNode *)(scan + sizeof(_block_header));
-            updateReferences(root);
+
+            if (root == NULL) return;
+
+            if (root->left != NULL) {
+                _block_header *header = (_block_header *)((char *)root->left - sizeof(_block_header));
+                root->left = (BiTreeNode *)header->forward;
+            }
+
+            if (root->right != NULL) {
+                _block_header *header = (_block_header *)((char *)root->right - sizeof(_block_header));
+                root->right = (BiTreeNode *)header->forward;
+            }
         }
         scan = next;
     }
@@ -119,18 +118,26 @@ void compact(BisTree *roots) {
 
     while (scan < heap->top) {
         _block_header *header = (_block_header *)scan;
-        char *next = scan + sizeof(_block_header) + header->size;
+        unsigned int size = header->size;
+        char *next = scan + sizeof(_block_header) + size;
+
         if (header->marked) {
-            dest = header->forward;
-            _block_header *dest_header = (_block_header *)(dest - sizeof(_block_header));
-            header->marked=false;
-            memmove(dest_header, header, sizeof(_block_header) + header->size);
+            char *dest = (char *)header->forward;
+            char *dest_header = dest - sizeof(_block_header);
+
+            memmove(dest_header, scan, sizeof(_block_header) + size);
+
+            _block_header *new_header = (_block_header *)dest_header;
+            new_header->marked = 0;
+            new_header->forward = NULL;
         }
+
         scan = next;
     }
 
     heap->top = top;
 
+    printf("*heap used* %ld / %u\n", heap->top - heap->base, heap->size);
 }
 
 

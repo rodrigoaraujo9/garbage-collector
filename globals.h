@@ -7,10 +7,12 @@
 
 #include "bistree.h"
 #include "heap.h"
+#include "time.h"
 
 BisTree *roots;
 Heap *heap;
 
 int max_roots;
+clock_t gc_ticks;
 
 #endif
