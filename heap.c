@@ -29,78 +29,69 @@ void heap_destroy(Heap* heap) {
 }
 
 void* my_malloc(unsigned int nbytes) {
-    if (heap->top + sizeof(_block_header) + nbytes < heap->limit) {
-        _block_header* q = (_block_header*)(heap->top);
+    unsigned int total = sizeof(_block_header) + nbytes;
+
+    if (heap->top + total <= heap->limit) {
+        _block_header *q = (_block_header *)heap->top;
+
         q->marked = 0;
         q->size = nbytes;
         q->forward = NULL;
 
-        char *p = heap->top + sizeof(_block_header);
-        heap->top = heap->top + sizeof(_block_header) + nbytes;
+        void *p = heap->top + sizeof(_block_header);
+        heap->top += total;
+
         return p;
     }
 
-    printf("my_malloc: not enough space, performing GC...\n");
-
-    clock_t start = clock();
-    heap->collector(roots);
-    gc_ticks += clock() - start;
-
-    if (heap->top + sizeof(_block_header) + nbytes < heap->limit) {
-        _block_header *q = (_block_header *)(heap->top);
-        q->marked = 0;
-        q->size = nbytes;
-        q->forward = NULL;
-
-        char *p = heap->top + sizeof(_block_header);
-        heap->top = heap->top + sizeof(_block_header) + nbytes;
-        return p;
-    }
-
-    printf("my_malloc: not enough space after GC...\n");
-    return NULL;
-}
-
-void* my_malloc_sweep(unsigned int nbytes) {
-    if (heap->top + sizeof(_block_header) + nbytes < heap->limit) {
-        _block_header* h = (_block_header*)heap->top;
-        h->marked = 0;
-        h->size   = nbytes;
-        h->forward = NULL;
-
-        char* p = heap->top + sizeof(_block_header);
-        heap->top += sizeof(_block_header) + nbytes;
-        return p;
-    }
-
-    printf("my_malloc: not enough space, performing GC...\n");
-
-    clock_t start = clock();
-    heap->collector(roots);
-    gc_ticks += clock() - start;
-
-    if (heap->top + sizeof(_block_header) + nbytes < heap->limit) {
-        _block_header* h = (_block_header*)heap->top;
-        h->marked = 0;
-        h->size   = nbytes;
-        h->forward = NULL;
-
-        char* p = heap->top + sizeof(_block_header);
-        heap->top += sizeof(_block_header) + nbytes;
-        return p;
-    }
-
-    if (!list_isempty(heap->freeb)) {
-        void* p = list_getfirst(heap->freeb);
+    while (!list_isempty(heap->freeb)) {
+        void *p = list_getfirst(heap->freeb);
         list_removefirst(heap->freeb);
-        _block_header* h = (_block_header*)((char*)p - sizeof(_block_header));
+
+        _block_header *h =
+            (_block_header *)((char *)p - sizeof(_block_header));
+
         if (h->size >= nbytes) {
             h->marked = 0;
+            h->forward = NULL;
             return p;
         }
-        return my_malloc_sweep(nbytes);
     }
 
-    printf("my_malloc: not enough space after GC...\n");
+    printf("*my_malloc* not enough space, performing GC...\n");
+
+    clock_t start = clock();
+    heap->collector(roots);
+    gc_ticks += clock() - start;
+
+    if (heap->top + total <= heap->limit) {
+        _block_header *h = (_block_header *)heap->top;
+
+        h->marked = 0;
+        h->size = nbytes;
+        h->forward = NULL;
+
+        void *p = heap->top + sizeof(_block_header);
+        heap->top += total;
+
+        return p;
+    }
+
+    while (!list_isempty(heap->freeb)) {
+        void *p = list_getfirst(heap->freeb);
+        list_removefirst(heap->freeb);
+
+        _block_header *h = (_block_header *)((char *)p - sizeof(_block_header));
+
+        if (h->size >= nbytes) {
+            h->marked = 0;
+            h->forward = NULL;
+            return p;
+        }
+    }
+
+    printf("*my_malloc* not enough space after GC...\n");
+    printf("*heap used* %ld / %u, requested %u bytes\n", heap->top - heap->base, heap->size, total);
+
     return NULL;
 }

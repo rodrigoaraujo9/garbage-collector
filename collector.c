@@ -39,8 +39,8 @@ void sweep() {
         }
 
         if (!current_header->marked) {
-            void *payload = (char *)current_header + sizeof(_block_header);
-            list_addlast(heap->freeb, payload);
+            void *p = (char *)current_header + sizeof(_block_header);
+            list_addlast(heap->freeb, p);
         } else {
             current_header->marked = 0;
         }

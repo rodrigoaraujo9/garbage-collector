@@ -58,6 +58,9 @@ all:
 	make -f $(MAKNAM) clean
 	make -f $(MAKNAM) $(EXE)
 
+test: $(EXE)
+	./$(EXE) 80 10 100000000
+
 clean:
 	-rm -f $(EXE)
 	-rm -f $(OBJFLS)

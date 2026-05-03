@@ -14,8 +14,8 @@
 #include "globals.h"
 #include "collector.h"
 
-#define  MAX_KEY_VALUE  1000
-#define  HEAP_SIZE      (32 * 1024)  /* 2 KByte */
+#define  MAX_KEY_VALUE  15
+#define  HEAP_SIZE      (2 * 1024)  /* 2 KByte */
 
 Heap*    heap;      /* shared global variable */
 BisTree* roots;     /* shared global variable */
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
    /* initialize the heap space used to store tree nodes */
    heap  = (Heap*)malloc(sizeof(Heap));
-   heap_init(heap, HEAP_SIZE, mark_compact_gc);
+   heap_init(heap, HEAP_SIZE, mark_sweep_gc);
 
    /* initialize set of tree roots */
    roots = (BisTree*)malloc(max_roots * sizeof(BisTree));
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
       int toss = random() % 100;
       if( toss > threshold ) {
          /* add integer to one of the roots */
-         bistree_insert(aroot, random() % MAX_KEY_VALUE);
+         if (!bistree_insert(aroot, random() % MAX_KEY_VALUE)) break;
          fprintf(stdout, "tree size is %d\n", bistree_size(aroot));
          fprintf(stdout, "(inorder traversal)\n");
          bistree_inorder(aroot);
