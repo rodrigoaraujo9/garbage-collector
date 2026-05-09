@@ -12,14 +12,30 @@
 
 
 void heap_init(Heap* heap, unsigned int size, void (*collector)(BisTree*)){
-    heap->base  = mmap ( NULL, size, PROT_READ | PROT_WRITE,
-                         MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
+    heap->base  = mmap(NULL, size, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+
     heap->size  = size;
     heap->limit = heap->base + size;
     heap->top   = heap->base;
+
     heap->freeb = (List*)malloc(sizeof(List));
     list_init(heap->freeb);
+
     heap->collector = collector;
+
+#ifdef COPY_COLLECT
+    heap->toSpace = heap->base;
+    heap->fromSpace = heap->base + heap->size / 2;
+
+    heap->workList = (List*)malloc(sizeof(List));
+    list_init(heap->workList);
+
+    heap->base = heap->fromSpace;
+    heap->top = heap->fromSpace;
+    heap->limit = heap->fromSpace + heap->size / 2;
+#endif
+
     return;
 }
 
@@ -36,7 +52,9 @@ void* my_malloc(unsigned int nbytes) {
 
         q->marked = 0;
         q->size = nbytes;
+      #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         q->forward = NULL;
+      #endif
 
         void *p = heap->top + sizeof(_block_header);
         heap->top += total;
@@ -53,7 +71,9 @@ void* my_malloc(unsigned int nbytes) {
 
         if (h->size >= nbytes) {
             h->marked = 0;
+          #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
             h->forward = NULL;
+          #endif
             return p;
         }
     }
@@ -69,7 +89,9 @@ void* my_malloc(unsigned int nbytes) {
 
         h->marked = 0;
         h->size = nbytes;
+      #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
+      #endif
 
         void *p = heap->top + sizeof(_block_header);
         heap->top += total;
@@ -85,7 +107,9 @@ void* my_malloc(unsigned int nbytes) {
 
         if (h->size >= nbytes) {
             h->marked = 0;
+          #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
             h->forward = NULL;
+          #endif
             return p;
         }
     }

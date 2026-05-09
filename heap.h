@@ -9,9 +9,11 @@
 #include "list.h"
 
 typedef struct {
-  void *forward;
   unsigned int marked;
   unsigned int size;
+#if defined(MARK_COMPACT) || defined(COPY_COLLECT)
+  void *forward;
+#endif
 } _block_header;
 
 typedef struct {
@@ -21,6 +23,11 @@ typedef struct {
   char *limit;
   List *freeb;
   void (*collector)(BisTree *);
+#ifdef COPY_COLLECT
+  char *fromSpace;
+  char *toSpace;
+  List *workList;
+#endif
 } Heap;
 
 void heap_init(Heap *heap, unsigned int size, void (*collector)(BisTree *));

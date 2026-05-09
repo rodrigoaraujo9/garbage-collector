@@ -14,6 +14,13 @@
 #include "globals.h"
 #include "collector.h"
 
+#if \
+   (defined(MARK_SWEEP) && defined(MARK_COMPACT)) || \
+   (defined(MARK_SWEEP) && defined(COPY_COLLECT)) || \
+   (defined(MARK_COMPACT) && defined(COPY_COLLECT))
+#error "*error* Define only one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
+#endif
+
 #define  MAX_KEY_VALUE  15
 #define  HEAP_SIZE      (2 * 1024)  /* 2 KByte */
 
@@ -29,7 +36,15 @@ int main(int argc, char** argv) {
 
    /* initialize the heap space used to store tree nodes */
    heap  = (Heap*)malloc(sizeof(Heap));
-   heap_init(heap, HEAP_SIZE, mark_sweep_gc);
+   #if defined(MARK_SWEEP)
+      heap_init(heap, HEAP_SIZE, mark_sweep_gc);
+   #elif defined(MARK_COMPACT)
+      heap_init(heap, HEAP_SIZE, mark_compact_gc);
+   #elif defined(COPY_COLLECT)
+      heap_init(heap, HEAP_SIZE, copy_collection_gc);
+   #else
+      #error "*error* you must define one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
+   #endif
 
    /* initialize set of tree roots */
    roots = (BisTree*)malloc(max_roots * sizeof(BisTree));

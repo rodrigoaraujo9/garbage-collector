@@ -1,13 +1,18 @@
 compile and run the code as follows:
 
-$ make -f makefile all
+$ make GC=<sweep, compact, copy> # chose either one
 $ ./mutator 0.5 100 100000
 $ ./mutator 0.1 100 100000
 $ ./mutator 0.9 100 100000
+$ ./mutator 80 10 1000000
+
+for a simple test
+
+$ make test
 
 to clean and leave just the source code
 
-$ make -f makefile clean
+$ make clean
 
 change bitree insert -> add allocated pointer as arg -> right now doesn't have
 call it after allocating the space
