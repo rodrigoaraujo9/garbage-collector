@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
    #elif defined(COPY_COLLECT)
       heap_init(heap, HEAP_SIZE, copy_collection_gc);
    #else
-      #error "*error* you must define one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
+      #error "*error*     you must define one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
    #endif
 
    /* initialize set of tree roots */
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
    clock_t total_ticks = clock() - start;
 
    /* print fraction of time spent on garbage collection */
-   printf("\n%% of time spent on garbage collection: %.2f%%\n", 100.0 * ((double)gc_ticks / (double)total_ticks));
+   printf("\n*info* %% of time spent on garbage collection: %.2f%%\n", 100.0 * ((double)gc_ticks / (double)total_ticks));
 
    /* exit gracefully */
    heap_destroy(heap);

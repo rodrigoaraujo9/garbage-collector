@@ -78,11 +78,14 @@ void* my_malloc(unsigned int nbytes) {
         }
     }
 
+    printf("\n\n");
     printf("*my_malloc* not enough space, performing GC...\n");
 
     clock_t start = clock();
     heap->collector(roots);
     gc_ticks += clock() - start;
+
+    printf("\n\n");
 
     if (heap->top + total <= heap->limit) {
         _block_header *h = (_block_header *)heap->top;

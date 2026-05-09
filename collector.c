@@ -155,7 +155,7 @@ void compact(BisTree *roots) {
 
     printf("*heap used* %ld / %u\n", heap->top - heap->base, heap->size);
   #else
-    printf("to use compact() activate MARK_COMPACT");
+    printf("*error* to use compact() activate MARK_COMPACT");
     exit(1);
   #endif
 
@@ -197,17 +197,19 @@ void collect(BisTree* roots) {
     heap->toSpace = tmp;
 
   #else
-    printf("to use collect() activate COPY_COLLECT");
+    printf("*error* to use collect() activate COPY_COLLECT");
     exit(1);
   #endif
 }
 
 void *copy(BiTreeNode *fromRef) {
   #ifdef COPY_COLLECT
+
+    /* Verify */
+
     if (fromRef == NULL) return NULL;
 
     _block_header *fromHeader = (_block_header *)((char *)fromRef - sizeof(_block_header));
-
     unsigned int total = sizeof(_block_header) + fromHeader->size;
 
     if (heap->top + total > heap->limit) {
@@ -215,10 +217,14 @@ void *copy(BiTreeNode *fromRef) {
         exit(1);
     }
 
+    /* Move */
+
     char *toHeader = heap->top;
     char *toRef = toHeader + sizeof(_block_header);
 
     memcpy(toHeader, fromHeader, total);
+
+    /* Cleanup */
 
     ((_block_header *)toHeader)->forward = NULL;
     ((_block_header *)toHeader)->marked = 0;
@@ -232,26 +238,28 @@ void *copy(BiTreeNode *fromRef) {
     return toRef;
 
   #else
-    printf("to use copy() activate COPY_COLLECT");
+    printf("*error* to use copy() activate COPY_COLLECT");
     exit(1);
   #endif
 }
 
 void swap() {
   #ifdef COPY_COLLECT
+
     char *tmp = heap->toSpace;
 
     heap->fromSpace = heap->toSpace;
     heap->toSpace = tmp;
 
   #else
-    printf("to use swap() activate COPY_COLLECT");
+    printf("*error* to use swap() activate COPY_COLLECT");
     exit(1);
   #endif
 }
 
 BiTreeNode *forward(BiTreeNode *fromRef) {
   #ifdef COPY_COLLECT
+
     if (fromRef == NULL) return NULL;
 
     _block_header *header = (_block_header *)((char *)fromRef - sizeof(_block_header));
@@ -263,64 +271,64 @@ BiTreeNode *forward(BiTreeNode *fromRef) {
     return (BiTreeNode *)header->forward;
 
   #else
-    printf("to use forward() activate COPY_COLLECT");
+    printf("*error* to use forward() activate COPY_COLLECT");
     exit(1);
   #endif
 }
 
 void process(BiTreeNode **node) {
   #ifdef COPY_COLLECT
-    if (*node != NULL) {
-        *node = forward(*node);
-    }
+
+    if (*node != NULL) *node = forward(*node);
+
   #else
-    printf("to use process() activate COPY_COLLECT");
+    printf("*error* to use process() activate COPY_COLLECT");
     exit(1);
   #endif
 }
 
 void mark_sweep_gc(BisTree* roots) {
-    printf("gcing()...\n");
+    printf("*collector* gcing()...\n");
 
     /* Mark */
 
-    printf("marking()...\n");
+    printf("*collector* marking()...\n");
     for (int i = 0; i < max_roots; i++) {
         mark(roots[i].root);
     }
 
     /* Sweep */
 
-    printf("sweeping()...\n");
+    printf("*collector* sweeping()...\n");
     sweep();
 
     return;
 }
 
 void mark_compact_gc(BisTree* roots) {
-    printf("gcing()...\n");
+    printf("*collector* gcing()...\n");
 
     /* Mark */
 
-    printf("marking()...\n");
+    printf("*collector* marking()...\n");
     for (int i = 0; i < max_roots; i++) {
         mark(roots[i].root);
     }
 
     /* Compact */
 
-    printf("compacting()... \n");
+    printf("*collector* compacting()... \n");
     compact(roots);
 
     return;
 }
 
  void copy_collection_gc(BisTree* roots) {
-     printf("gcing()...\n");
+     printf("*collector* gcing()...\n");
 
      /* Copy and Collect*/
 
-     printf("collecting()...\n");
+     printf("*collector* collecting()...\n");
      collect(roots);
 
      return;
