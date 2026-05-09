@@ -70,6 +70,7 @@ void sweep() {
 
 void compact(BisTree *roots) {
   #ifdef MARK_COMPACT
+
     /* Cleanup */
 
     while (!list_isempty(heap->freeb)) {
@@ -229,9 +230,12 @@ void *copy(BiTreeNode *fromRef) {
     ((_block_header *)toHeader)->forward = NULL;
     ((_block_header *)toHeader)->marked = 0;
 
-    fromHeader->forward = toRef;
+    /* Forward */
 
+    fromHeader->forward = toRef;
     heap->top = toHeader + total;
+
+    /* Add to work list */
 
     list_addlast(heap->workList, toRef);
 
