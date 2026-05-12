@@ -110,6 +110,7 @@ void compact(BisTree *roots) {
 
     scan = heap->base;
 
+    /* (Goes through heap -> REPLACE WITH LIVESET RECURSION ON TREE) */
     while (scan < heap->top) {
         _block_header *header = (_block_header *)scan;
         char *next = scan + sizeof(_block_header) + header->size;
@@ -181,14 +182,14 @@ void collect(BisTree* roots) {
         process(&roots[i].root);
     }
 
-    /* Process Remaining Nodes */
+    /* Process Remaining Nodes (Goes through heap -> REPLACE WITH LIVESET RECURSION ON TREE) */
 
     while (!list_isempty(heap->workList)) {
-        BiTreeNode *ref = list_getfirst(heap->workList);
+        BiTreeNode *node = list_getfirst(heap->workList);
         list_removefirst(heap->workList);
 
-        process(&ref->left);
-        process(&ref->right);
+        process(&node->left);
+        process(&node->right);
     }
 
     /* Cleanup */
@@ -203,17 +204,17 @@ void collect(BisTree* roots) {
   #endif
 }
 
-void *copy(BiTreeNode *fromRef) {
+void *copy(BiTreeNode *from) {
   #ifdef COPY_COLLECT
 
     /* Verify */
 
-    if (fromRef == NULL) return NULL;
+    if (from == NULL) return NULL;
 
-    _block_header *fromHeader = (_block_header *)((char *)fromRef - sizeof(_block_header));
-    unsigned int total = sizeof(_block_header) + fromHeader->size;
+    _block_header *fromHeader = (_block_header *)((char *)from - sizeof(_block_header));
+    unsigned int size = sizeof(_block_header) + fromHeader->size;
 
-    if (heap->top + total > heap->limit) {
+    if (heap->top + size > heap->limit) {
         printf("*error* copy collector overflow\n");
         exit(1);
     }
@@ -221,9 +222,9 @@ void *copy(BiTreeNode *fromRef) {
     /* Move */
 
     char *toHeader = heap->top;
-    char *toRef = toHeader + sizeof(_block_header);
+    char *to = toHeader + sizeof(_block_header);
 
-    memcpy(toHeader, fromHeader, total);
+    memcpy(toHeader, fromHeader, size);
 
     /* Cleanup */
 
@@ -232,14 +233,14 @@ void *copy(BiTreeNode *fromRef) {
 
     /* Forward */
 
-    fromHeader->forward = toRef;
-    heap->top = toHeader + total;
+    fromHeader->forward = to;
+    heap->top = toHeader + size;
 
     /* Add to work list */
 
-    list_addlast(heap->workList, toRef);
+    list_addlast(heap->workList, to);
 
-    return toRef;
+    return to;
 
   #else
     printf("*error* to use copy() activate COPY_COLLECT");
@@ -261,15 +262,15 @@ void swap() {
   #endif
 }
 
-BiTreeNode *forward(BiTreeNode *fromRef) {
+BiTreeNode *forward(BiTreeNode *node) {
   #ifdef COPY_COLLECT
 
-    if (fromRef == NULL) return NULL;
+    if (node == NULL) return NULL;
 
-    _block_header *header = (_block_header *)((char *)fromRef - sizeof(_block_header));
+    _block_header *header = (_block_header *)((char *)node - sizeof(_block_header));
 
     if (header->forward == NULL) {
-        return copy(fromRef);
+        return copy(node);
     }
 
     return (BiTreeNode *)header->forward;
