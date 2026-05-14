@@ -50,6 +50,7 @@ void mark(BiTreeNode *node) {
 /* Sweep */
 
 void sweep() {
+  #ifdef MARK_SWEEP
     while (!list_isempty(heap->freeb)) {
         list_removefirst(heap->freeb);
     }
@@ -73,6 +74,10 @@ void sweep() {
 
         current_header = next_header;
     }
+  #else
+    printf("*error* to use sweep() activate MARK_COMPACT");
+    exit(1);
+  #endif
 }
 
 void mark_sweep_gc(BisTree* roots) {
@@ -99,12 +104,6 @@ void mark_sweep_gc(BisTree* roots) {
 
 void compact(BisTree *roots) {
   #ifdef MARK_COMPACT
-
-    /* Cleanup */
-
-    while (!list_isempty(heap->freeb)) {
-        list_removefirst(heap->freeb);
-    }
 
     /* Compute Locations */
 
@@ -342,13 +341,13 @@ void process(BiTreeNode **node) {
   #endif
 }
 
- void copy_collection_gc(BisTree* roots) {
-     printf("*collector* gcing()...\n");
+void copy_collection_gc(BisTree* roots) {
+    printf("*collector* gcing()...\n");
 
-     /* Copy and Collect*/
+    /* Copy and Collect*/
 
-     printf("*collector* collecting()...\n");
-     collect(roots);
+    printf("*collector* collecting()...\n");
+    collect(roots);
 
      return;
- }
+}

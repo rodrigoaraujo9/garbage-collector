@@ -14,6 +14,6 @@ to clean and leave just the source code
 
 $ make clean
 
-change bitree insert -> add allocated pointer as arg -> right now doesn't have
-call it after allocating the space
-prevent's corrupting mem by allocating after traversing bitree
+generalize
+
+write what i have done

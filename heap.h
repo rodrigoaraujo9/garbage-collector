@@ -21,7 +21,9 @@ typedef struct {
   char *base;
   char *top;
   char *limit;
+#ifdef MARK_SWEEP
   List *freeb;
+#endif
   void (*collector)(BisTree *);
 #ifdef COPY_COLLECT
   char *fromSpace;

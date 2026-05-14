@@ -18,13 +18,14 @@ void heap_init(Heap* heap, unsigned int size, void (*collector)(BisTree*)){
     heap->size  = size;
     heap->limit = heap->base + size;
     heap->top   = heap->base;
-
-    heap->freeb = (List*)malloc(sizeof(List));
-    list_init(heap->freeb);
-
     heap->collector = collector;
 
-#ifdef COPY_COLLECT
+  #ifdef MARK_SWEEP
+    heap->freeb = (List*)malloc(sizeof(List));
+    list_init(heap->freeb);
+  #endif
+
+  #ifdef COPY_COLLECT
     heap->toSpace = heap->base;
     heap->fromSpace = heap->base + heap->size / 2;
 
@@ -34,7 +35,7 @@ void heap_init(Heap* heap, unsigned int size, void (*collector)(BisTree*)){
     heap->base = heap->fromSpace;
     heap->top = heap->fromSpace;
     heap->limit = heap->fromSpace + heap->size / 2;
-#endif
+  #endif
 
     return;
 }
@@ -62,6 +63,7 @@ void* my_malloc(unsigned int nbytes) {
         return p;
     }
 
+  #ifdef MARK_SWEEP
     while (!list_isempty(heap->freeb)) {
         void *p = list_getfirst(heap->freeb);
         list_removefirst(heap->freeb);
@@ -70,12 +72,10 @@ void* my_malloc(unsigned int nbytes) {
 
         if (h->size >= nbytes) {
             h->marked = 0;
-          #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
-            h->forward = NULL;
-          #endif
             return p;
         }
     }
+  #endif
 
     printf("\n\n");
     printf("*my_malloc* not enough space, performing GC...\n");
@@ -100,7 +100,7 @@ void* my_malloc(unsigned int nbytes) {
 
         return p;
     }
-
+  #ifdef MARK_SWEEP
     while (!list_isempty(heap->freeb)) {
         void *p = list_getfirst(heap->freeb);
         list_removefirst(heap->freeb);
@@ -109,12 +109,10 @@ void* my_malloc(unsigned int nbytes) {
 
         if (h->size >= nbytes) {
             h->marked = 0;
-          #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
-            h->forward = NULL;
-          #endif
             return p;
         }
     }
+  #endif
 
     printf("*my_malloc* not enough space after GC...\n");
     printf("*heap used* %ld / %u, requested %u bytes\n", heap->top - heap->base, heap->size, total);
