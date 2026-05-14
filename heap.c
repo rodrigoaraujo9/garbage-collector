@@ -66,8 +66,7 @@ void* my_malloc(unsigned int nbytes) {
         void *p = list_getfirst(heap->freeb);
         list_removefirst(heap->freeb);
 
-        _block_header *h =
-            (_block_header *)((char *)p - sizeof(_block_header));
+        _block_header *h = (_block_header *)((char *)p - sizeof(_block_header));
 
         if (h->size >= nbytes) {
             h->marked = 0;

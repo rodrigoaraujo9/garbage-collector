@@ -18,6 +18,7 @@ void sweep();
 
 /* Compact */
 void compact(BisTree *roots);
+void update_references(BiTreeNode *node);
 
 /* Collect */
 void collect(BisTree *roots);
@@ -27,7 +28,9 @@ BiTreeNode *forward(BiTreeNode *fromRef);
 void process(BiTreeNode **node);
 
 
-/* Implementation */
+/* ---------------------------------------------------------------------------------------------------------------------------- */
+
+/* Mark */
 
 void mark(BiTreeNode *node) {
     if (node == NULL) return;
@@ -41,6 +44,10 @@ void mark(BiTreeNode *node) {
     mark(node->left);
     mark(node->right);
 }
+
+/* ---------------------------------------------------------------------------------------------------------------------------- */
+
+/* Sweep */
 
 void sweep() {
     while (!list_isempty(heap->freeb)) {
@@ -67,6 +74,28 @@ void sweep() {
         current_header = next_header;
     }
 }
+
+void mark_sweep_gc(BisTree* roots) {
+    printf("*collector* gcing()...\n");
+
+    /* Mark */
+
+    printf("*collector* marking()...\n");
+    for (int i = 0; i < max_roots; i++) {
+        mark(roots[i].root);
+    }
+
+    /* Sweep */
+
+    printf("*collector* sweeping()...\n");
+    sweep();
+
+    return;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------------------- */
+
+/* Compact */
 
 void compact(BisTree *roots) {
   #ifdef MARK_COMPACT
@@ -110,7 +139,6 @@ void compact(BisTree *roots) {
 
     scan = heap->base;
 
-    /* (Goes through heap -> REPLACE WITH LIVESET RECURSION ON TREE) */
     while (scan < heap->top) {
         _block_header *header = (_block_header *)scan;
         char *next = scan + sizeof(_block_header) + header->size;
@@ -163,6 +191,28 @@ void compact(BisTree *roots) {
 
 }
 
+void mark_compact_gc(BisTree* roots) {
+    printf("*collector* gcing()...\n");
+
+    /* Mark */
+
+    printf("*collector* marking()...\n");
+    for (int i = 0; i < max_roots; i++) {
+        mark(roots[i].root);
+    }
+
+    /* Compact */
+
+    printf("*collector* compacting()... \n");
+    compact(roots);
+
+    return;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------------------- */
+
+/* Copy Collection */
+
 void collect(BisTree* roots) {
   #ifdef COPY_COLLECT
 
@@ -182,7 +232,7 @@ void collect(BisTree* roots) {
         process(&roots[i].root);
     }
 
-    /* Process Remaining Nodes (Goes through heap -> REPLACE WITH LIVESET RECURSION ON TREE) */
+    /* Process Remaining Nodes */
 
     while (!list_isempty(heap->workList)) {
         BiTreeNode *node = list_getfirst(heap->workList);
@@ -290,42 +340,6 @@ void process(BiTreeNode **node) {
     printf("*error* to use process() activate COPY_COLLECT");
     exit(1);
   #endif
-}
-
-void mark_sweep_gc(BisTree* roots) {
-    printf("*collector* gcing()...\n");
-
-    /* Mark */
-
-    printf("*collector* marking()...\n");
-    for (int i = 0; i < max_roots; i++) {
-        mark(roots[i].root);
-    }
-
-    /* Sweep */
-
-    printf("*collector* sweeping()...\n");
-    sweep();
-
-    return;
-}
-
-void mark_compact_gc(BisTree* roots) {
-    printf("*collector* gcing()...\n");
-
-    /* Mark */
-
-    printf("*collector* marking()...\n");
-    for (int i = 0; i < max_roots; i++) {
-        mark(roots[i].root);
-    }
-
-    /* Compact */
-
-    printf("*collector* compacting()... \n");
-    compact(roots);
-
-    return;
 }
 
  void copy_collection_gc(BisTree* roots) {
