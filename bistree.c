@@ -44,10 +44,17 @@ BiTreeNode* bitreenode_insert(BiTreeNode* node, BiTreeNode* new_node) {
 bool bistree_insert(BisTree* tree, int data) {
     if (bistree_lookup(tree, data))
         return true;
-    BiTreeNode* node = (BiTreeNode*)my_malloc(sizeof(BiTreeNode));
+
+    BiTreeNode *node = (BiTreeNode *)my_malloc(sizeof(BiTreeNode));
 
     if (node == NULL)
-       return false;
+        return false;
+
+    _block_header *h = (_block_header *)((char *)node - sizeof(_block_header));
+
+    h->n_fields = 2;
+    h->field_offsets[0] = offsetof(BiTreeNode, left);
+    h->field_offsets[1] = offsetof(BiTreeNode, right);
 
     node->data = data;
     node->left = NULL;

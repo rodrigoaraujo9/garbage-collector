@@ -38,14 +38,13 @@ void mark(char *object) {
 
     if (header->marked) return;
 
-    header->marked = true;
+    header->marked = 1;
 
     for (int i = 0; i < header->n_fields; i++) {
-        if (header->field_bitmap[i] == 0) continue;
+        void **field = (void **)((char *)object + header->field_offsets[i]);
 
-        void **field = (void **)(object + i * sizeof(void *));
-
-        if (*field != NULL) mark((char *)(*field));
+        if (*field != NULL)
+            mark((char *)(*field));
     }
 }
 
@@ -148,15 +147,16 @@ void compact(void *objects, int n_objects) {
 
     scan = heap->base;
 
-    // might be spaghetti
     while (scan < heap->top) {
         _block_header *header = (_block_header *)scan;
         char *next = scan + sizeof(_block_header) + header->size;
 
         if (header->marked) {
+            char *object = scan + sizeof(_block_header);
+
             for (int i = 0; i < header->n_fields; i++) {
-                if (header->field_bitmap[i] == 0)  continue;
-                void **field = (void **)(scan + sizeof(_block_header) + i * sizeof(void *));
+                void **field =
+                    (void **)(object + header->field_offsets[i]);
 
                 if (*field != NULL) {
                     _block_header *field_header = (_block_header *)((char *)(*field) - sizeof(_block_header));
@@ -165,6 +165,7 @@ void compact(void *objects, int n_objects) {
                 }
             }
         }
+
         scan = next;
     }
 
@@ -250,15 +251,11 @@ void collect(void *objects, int n_objects) {
         void *object = list_getfirst(heap->workList);
         list_removefirst(heap->workList);
 
-        _block_header *header =
-            (_block_header *)((char *)object - sizeof(_block_header));
+        _block_header *header = (_block_header *)((char *)object - sizeof(_block_header));
 
         for (int i = 0; i < header->n_fields; i++) {
-            if (header->field_bitmap[i] == 0)
-                continue;
+            void **field = (void **)((char *)object + header->field_offsets[i]);
 
-
-            void **field = (void **)((char *)object + i * sizeof(void *));
             process(field);
         }
     }

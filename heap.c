@@ -11,10 +11,8 @@
 #include "collector.h"
 
 
-void heap_init(Heap* heap, unsigned int size, void (*collector)(BisTree*)){
-    heap->base  = mmap(NULL, size, PROT_READ | PROT_WRITE,
-                       MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-
+void heap_init(Heap* heap, unsigned int size, void (*collector)(void *, int)){
+    heap->base  = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
     heap->size  = size;
     heap->limit = heap->base + size;
     heap->top   = heap->base;
@@ -49,12 +47,17 @@ void* my_malloc(unsigned int nbytes) {
     unsigned int total = sizeof(_block_header) + nbytes;
 
     if (heap->top + total <= heap->limit) {
-        _block_header *q = (_block_header *)heap->top;
+        _block_header *h = (_block_header *)heap->top;
 
-        q->marked = 0;
-        q->size = nbytes;
+        h->marked = 0;
+        h->size = nbytes;
+        h->n_fields = 0;
+
+        for (int i = 0; i < MAX_FIELDS; i++)
+            h->field_offsets[i] = 0;
+
       #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
-        q->forward = NULL;
+        h->forward = NULL;
       #endif
 
         void *p = heap->top + sizeof(_block_header);
@@ -75,10 +78,18 @@ void* my_malloc(unsigned int nbytes) {
 
         _block_header *h = (_block_header *)((char *)p - sizeof(_block_header));
 
-        if (h->size >= nbytes) {
-            h->marked = 0;
-            return p;
-        }
+        h->marked = 0;
+        h->size = nbytes;
+        h->n_fields = 0;
+
+        for (int j = 0; j < MAX_FIELDS; j++)
+            h->field_offsets[j] = 0;
+
+  #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
+        h->forward = NULL;
+  #endif
+
+        return p;
     }
   #endif
 
@@ -86,7 +97,17 @@ void* my_malloc(unsigned int nbytes) {
     printf("*my_malloc* not enough space, performing GC...\n");
 
     clock_t start = clock();
-    heap->collector(roots);
+
+    void *root_objects[max_roots];
+
+    for (int i = 0; i < max_roots; i++)
+        root_objects[i] = roots[i].root;
+
+    heap->collector(root_objects, max_roots);
+
+    for (int i = 0; i < max_roots; i++)
+        roots[i].root = root_objects[i];
+
     gc_ticks += clock() - start;
 
     printf("\n\n");
@@ -96,31 +117,53 @@ void* my_malloc(unsigned int nbytes) {
 
         h->marked = 0;
         h->size = nbytes;
-      #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
+        h->n_fields = 0;
+
+        for (int i = 0; i < MAX_FIELDS; i++)
+            h->field_offsets[i] = 0;
+
+  #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
-      #endif
+  #endif
 
         void *p = heap->top + sizeof(_block_header);
         heap->top += total;
 
         return p;
     }
+
   #ifdef MARK_SWEEP
     while (!list_isempty(heap->freeb)) {
-        void *p = list_getfirst(heap->freeb);
-        list_removefirst(heap->freeb);
+        int i;
+        void *p = list_getfirstbigger(heap->freeb, nbytes, &i);
+
+        if (p == NULL)
+            break;
+
+        list_remove(heap->freeb, i);
 
         _block_header *h = (_block_header *)((char *)p - sizeof(_block_header));
 
-        if (h->size >= nbytes) {
-            h->marked = 0;
-            return p;
-        }
+        h->marked = 0;
+        h->size = nbytes;
+        h->n_fields = 0;
+
+        for (int j = 0; j < MAX_FIELDS; j++)
+            h->field_offsets[j] = 0;
+
+  #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
+        h->forward = NULL;
+  #endif
+
+        return p;
     }
   #endif
 
     printf("*my_malloc* not enough space after GC...\n");
-    printf("*heap used* %ld / %u, requested %u bytes\n", heap->top - heap->base, heap->size, total);
+    printf("*heap used* %ld / %u, requested %u bytes\n",
+           heap->top - heap->base,
+           heap->size,
+           total);
 
     return NULL;
 }

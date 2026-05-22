@@ -8,11 +8,13 @@
 #include "bistree.h"
 #include "list.h"
 
+#define MAX_FIELDS 8
+
 typedef struct {
   unsigned int marked;
   unsigned int size;
   unsigned int n_fields;
-  unsigned char *field_bitmap; // 0 -> constant value, 1 -> pointer
+  unsigned int field_offsets[MAX_FIELDS];
 #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
   void *forward;
 #endif
@@ -26,7 +28,7 @@ typedef struct {
 #ifdef MARK_SWEEP
   List *freeb;
 #endif
-  void (*collector)(BisTree *);
+  void (*collector)(void *, int);
 #ifdef COPY_COLLECT
   char *fromSpace;
   char *toSpace;
@@ -34,7 +36,7 @@ typedef struct {
 #endif
 } Heap;
 
-void heap_init(Heap *heap, unsigned int size, void (*collector)(BisTree *));
+void heap_init(Heap *heap, unsigned int size, void (*collector)(void *, int));
 
 void heap_destroy(Heap *heap);
 
