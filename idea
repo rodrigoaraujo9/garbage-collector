@@ -1,0 +1,3 @@
+optimizations:
+    freeb -> embutido -> em vez de ser separada está embutida no forward pointer
+    offset (for flexible size) and header bits for pointer/const [0,1,1,0] -> remove tree structure and adapt

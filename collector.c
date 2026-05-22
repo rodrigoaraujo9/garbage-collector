@@ -11,7 +11,7 @@
 #include "list.h"
 
 /* Mark */
-void mark(BiTreeNode *node);
+void mark(char *object);
 
 /* Sweep */
 void sweep();
@@ -27,22 +27,23 @@ void swap();
 BiTreeNode *forward(BiTreeNode *fromRef);
 void process(BiTreeNode **node);
 
-
 /* ---------------------------------------------------------------------------------------------------------------------------- */
 
 /* Mark */
 
-void mark(BiTreeNode *node) {
-    if (node == NULL) return;
+void mark(char *object) {
+    if (object == NULL) return;
 
-    _block_header *header = (_block_header *)((char *)node - sizeof(_block_header));
+    _block_header *header = (_block_header *)((char *)object - sizeof(_block_header));
 
     if (header->marked) return;
 
     header->marked = true;
 
-    mark(node->left);
-    mark(node->right);
+    for (int i = 0; i < header->field_count; i++) {
+        if (header->bitmap[i] == 0) break;
+        mark((char *) (object + i * sizeof(char *)));
+    }
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */
