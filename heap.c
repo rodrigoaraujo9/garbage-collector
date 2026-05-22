@@ -65,8 +65,13 @@ void* my_malloc(unsigned int nbytes) {
 
   #ifdef MARK_SWEEP
     while (!list_isempty(heap->freeb)) {
-        void *p = list_getfirst(heap->freeb);
-        list_removefirst(heap->freeb);
+        int i;
+        void *p = list_getfirstbigger(heap->freeb, nbytes, &i);
+
+        if (p == NULL)
+            break;
+
+        list_remove(heap->freeb, i);
 
         _block_header *h = (_block_header *)((char *)p - sizeof(_block_header));
 

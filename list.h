@@ -6,9 +6,11 @@
 #define LIST_H
 
 #include "bool.h"
+#include <stddef.h>
 
 typedef struct ListNode_ {
   void *data;
+  unsigned int size;
   struct ListNode_ *next;
 } ListNode;
 
@@ -23,9 +25,11 @@ int list_size(List *list);
 
 bool list_isempty(List *list);
 
-void list_addfirst(List *list, void *data);
+void list_addfirst(List *list, void *data, size_t size);
 
-void list_addlast(List *list, void *data);
+void list_addlast(List *list, void *data, size_t size);
+
+void *list_getfirstbigger(List *list, size_t size, int *i);
 
 void *list_getfirst(List *list);
 

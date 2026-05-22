@@ -5,8 +5,10 @@
 #ifndef COLLECTOR_H
 #define COLLECTOR_H
 
-void mark_sweep_gc(BisTree *roots);
-void mark_compact_gc(BisTree *roots);
-void copy_collection_gc(BisTree *roots);
+#include <stddef.h>
+
+void mark_sweep_gc(void *objects, int n_objects, size_t size_of_object);
+void mark_compact_gc(void *objects, int n_objects, size_t size_of_object);
+void copy_collection_gc(void *objects, int n_objects, size_t size_of_object);
 
 #endif

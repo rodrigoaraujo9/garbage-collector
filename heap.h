@@ -11,8 +11,8 @@
 typedef struct {
   unsigned int marked;
   unsigned int size;
-  unsigned int field_count;
-  unsigned char *bitmap; // 0 -> constant value, 1 -> pointer
+  unsigned int n_fields;
+  unsigned char *field_bitmap; // 0 -> constant value, 1 -> pointer
 #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
   void *forward;
 #endif

@@ -2,6 +2,7 @@
  * list.c
  */
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -24,31 +25,77 @@ bool list_isempty(List* list) {
    return (list->size == 0);
 }
 
-void list_addfirst(List* list, void* data) {
+void list_addfirst(List* list, void* data, size_t size) {
   ListNode* node = (ListNode*)malloc(sizeof(ListNode));
+
   node->data = data;
   node->next = list->first;
+  node->size = size;
+
   list->first= node;
   list->size = list->size + 1;
   return;
 }
 
-void list_addlast(List* list, void* data) {
+void list_addlast(List* list, void* data, size_t size) {
   ListNode* node = (ListNode*)malloc(sizeof(ListNode));
+
   node->data = data;
+  node->size = size;
   node->next = NULL;
+
   if(list_isempty(list)) {
      list->first = node;
-  }
-  else {
+  } else {
      ListNode* p = list->first;
      while(p->next != NULL)
         p = p->next;
      p->next = node;
   }
+
   list->size = list->size + 1;
   return;
 }
+
+// add space to freeb ordered by size of space for easy usage of freeb
+void list_addordered(List* list, void* data, size_t size) {
+    if (list_isempty(list) || size <= list->first->size) {
+        list_addfirst(list, data, size);
+        return;
+    }
+
+    ListNode* node = (ListNode*)malloc(sizeof(ListNode));
+    node->data = data;
+    node->size = size;
+
+    ListNode* p = list->first;
+
+    while (p->next != NULL && p->next->size < size) {
+        p = p->next;
+    }
+
+    node->next = p->next;
+    p->next = node;
+    list->size++;
+}
+
+void* list_getfirstbigger(List* list, size_t size, int *i) {
+  if(list_isempty(list))
+     return NULL;
+
+  ListNode* p = list->first;
+  *i = 0;
+
+  while (p != NULL && p->size < size) {
+      p = p->next;
+      (*i)++;
+  }
+
+  if (p==NULL) return NULL;
+
+  return p->data;
+}
+
 
 void* list_getfirst(List* list) {
    if (list_isempty(list))
@@ -93,6 +140,26 @@ void list_removelast(List* list) {
    }
    list->size = list->size - 1;
    return;
+}
+
+void list_remove(List* list, int index) {
+
+    if(list_isempty(list) || index < 0 || index >= list->size)
+       return;
+
+    if(index == 0) {
+       list_removefirst(list);
+       return;
+    }
+
+    ListNode* p = list->first;
+    for(int i = 0; i < index - 1; i++)
+       p = p->next;
+
+    p->next = p->next->next;
+
+    list->size--;
+    return;
 }
 
 void list_print(List* list) {

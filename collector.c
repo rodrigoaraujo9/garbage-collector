@@ -2,6 +2,7 @@
  * collector.c
  */
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +18,7 @@ void mark(char *object);
 void sweep();
 
 /* Compact */
-void compact(BisTree *roots);
+void compact(void *objects, int n_objects, size_t size_of_object);
 void update_references(BiTreeNode *node);
 
 /* Collect */
@@ -40,9 +41,12 @@ void mark(char *object) {
 
     header->marked = true;
 
-    for (int i = 0; i < header->field_count; i++) {
-        if (header->bitmap[i] == 0) break;
-        mark((char *) (object + i * sizeof(char *)));
+    for (int i = 0; i < header->n_fields; i++) {
+        if (header->field_bitmap[i] == 0) continue;
+
+        void **field = (void **)(object + i * sizeof(void *));
+
+        if (*field != NULL) mark((char *)(*field));
     }
 }
 
@@ -68,7 +72,7 @@ void sweep() {
 
         if (!current_header->marked) {
             void *p = (char *)current_header + sizeof(_block_header);
-            list_addlast(heap->freeb, p);
+            list_addordered(heap->freeb, p, current_header->size);
         } else {
             current_header->marked = 0;
         }
@@ -81,14 +85,16 @@ void sweep() {
   #endif
 }
 
-void mark_sweep_gc(BisTree* roots) {
+void mark_sweep_gc(void* objects, int n_objects, size_t size_of_object) {
     printf("*collector* gcing()...\n");
+
+    void **roots = (void **)objects;
 
     /* Mark */
 
     printf("*collector* marking()...\n");
-    for (int i = 0; i < max_roots; i++) {
-        mark(roots[i].root);
+    for (int i = 0; i < n_objects; i++) {
+        mark((char *)roots[i]);
     }
 
     /* Sweep */
@@ -103,7 +109,7 @@ void mark_sweep_gc(BisTree* roots) {
 
 /* Compact */
 
-void compact(BisTree *roots) {
+void compact(void *objects, int n_objects, size_t size_of_object) {
   #ifdef MARK_COMPACT
 
     /* Compute Locations */
@@ -129,30 +135,35 @@ void compact(BisTree *roots) {
 
     /* Update References */
 
-    for (int i = 0; i < max_roots; i++) {
-        BiTreeNode *ref = roots[i].root;
-        if (ref != NULL) {
-            _block_header *header = (_block_header *)((char *)ref - sizeof(_block_header));
-            roots[i].root = (BiTreeNode *)header->forward;
+    void **roots = (void **)objects;
+
+    for (int i = 0; i < n_objects; i++) {
+        void *object = roots[i];
+
+        if (object != NULL) {
+            _block_header *header = (_block_header *)((char *)object - sizeof(_block_header));
+
+            roots[i] = header->forward;
         }
     }
 
     scan = heap->base;
 
+    // might be spaghetti
     while (scan < heap->top) {
         _block_header *header = (_block_header *)scan;
         char *next = scan + sizeof(_block_header) + header->size;
+
         if (header->marked) {
-            BiTreeNode *node = (BiTreeNode *)(scan + sizeof(_block_header));
+            for (int i = 0; i < header->n_fields; i++) {
+                if (header->field_bitmap[i] == 0)  continue;
+                void **field = (void **)(scan + sizeof(_block_header) + i * sizeof(void *));
 
-            if (node->left != NULL) {
-                _block_header *header = (_block_header *)((char *)node->left - sizeof(_block_header));
-                node->left = (BiTreeNode *)header->forward;
-            }
+                if (*field != NULL) {
+                    _block_header *field_header = (_block_header *)((char *)(*field) - sizeof(_block_header));
 
-            if (node->right != NULL) {
-                _block_header *header = (_block_header *)((char *)node->right - sizeof(_block_header));
-                node->right = (BiTreeNode *)header->forward;
+                    *field = field_header->forward;
+                }
             }
         }
         scan = next;
@@ -191,22 +202,22 @@ void compact(BisTree *roots) {
 
 }
 
-void mark_compact_gc(BisTree* roots) {
+void mark_compact_gc(void* objects, int n_objects, size_t size_of_object) {
     printf("*collector* gcing()...\n");
+
+    void **roots = (void **)objects;
 
     /* Mark */
 
     printf("*collector* marking()...\n");
-    for (int i = 0; i < max_roots; i++) {
-        mark(roots[i].root);
+    for (int i = 0; i < n_objects; i++) {
+        mark((char *)roots[i]);
     }
 
     /* Compact */
 
     printf("*collector* compacting()... \n");
-    compact(roots);
-
-    return;
+    compact(objects, n_objects, size_of_object);
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */
