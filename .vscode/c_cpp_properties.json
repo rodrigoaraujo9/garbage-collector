@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "name": "Mac",
+      "includePath": [
+        "${workspaceFolder}/**"
+      ],
+      "defines": [
+        "COPY_COLLECT"
+      ],
+      "compilerPath": "/usr/bin/clang",
+      "cStandard": "c99",
+      "intelliSenseMode": "macos-clang-arm64"
+    }
+  ],
+  "version": 4
+}

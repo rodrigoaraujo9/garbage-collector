@@ -18,15 +18,14 @@ void mark(char *object);
 void sweep();
 
 /* Compact */
-void compact(void *objects, int n_objects, size_t size_of_object);
-void update_references(BiTreeNode *node);
+void compact(void *objects, int n_objects);
 
 /* Collect */
-void collect(BisTree *roots);
-void *copy(BiTreeNode *fromRef);
+void collect(void *objects, int n_objects);
+void *copy(void *from);
 void swap();
-BiTreeNode *forward(BiTreeNode *fromRef);
-void process(BiTreeNode **node);
+void *forward(void *fromRef);
+void process(void **node);
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */
 
@@ -85,7 +84,7 @@ void sweep() {
   #endif
 }
 
-void mark_sweep_gc(void* objects, int n_objects, size_t size_of_object) {
+void mark_sweep_gc(void* objects, int n_objects) {
     printf("*collector* gcing()...\n");
 
     void **roots = (void **)objects;
@@ -109,7 +108,7 @@ void mark_sweep_gc(void* objects, int n_objects, size_t size_of_object) {
 
 /* Compact */
 
-void compact(void *objects, int n_objects, size_t size_of_object) {
+void compact(void *objects, int n_objects) {
   #ifdef MARK_COMPACT
 
     /* Compute Locations */
@@ -202,7 +201,7 @@ void compact(void *objects, int n_objects, size_t size_of_object) {
 
 }
 
-void mark_compact_gc(void* objects, int n_objects, size_t size_of_object) {
+void mark_compact_gc(void* objects, int n_objects) {
     printf("*collector* gcing()...\n");
 
     void **roots = (void **)objects;
@@ -217,14 +216,14 @@ void mark_compact_gc(void* objects, int n_objects, size_t size_of_object) {
     /* Compact */
 
     printf("*collector* compacting()... \n");
-    compact(objects, n_objects, size_of_object);
+    compact(objects, n_objects);
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */
 
 /* Copy Collection */
 
-void collect(BisTree* roots) {
+void collect(void *objects, int n_objects) {
   #ifdef COPY_COLLECT
 
     /* Cleanup */
@@ -239,18 +238,29 @@ void collect(BisTree* roots) {
 
     /* Process Roots */
 
-    for (int i = 0; i < max_roots; i++) {
-        process(&roots[i].root);
+    void **roots = (void **)objects;
+
+    for (int i = 0; i < n_objects; i++) {
+        process(&roots[i]);
     }
 
     /* Process Remaining Nodes */
 
     while (!list_isempty(heap->workList)) {
-        BiTreeNode *node = list_getfirst(heap->workList);
+        void *object = list_getfirst(heap->workList);
         list_removefirst(heap->workList);
 
-        process(&node->left);
-        process(&node->right);
+        _block_header *header =
+            (_block_header *)((char *)object - sizeof(_block_header));
+
+        for (int i = 0; i < header->n_fields; i++) {
+            if (header->field_bitmap[i] == 0)
+                continue;
+
+
+            void **field = (void **)((char *)object + i * sizeof(void *));
+            process(field);
+        }
     }
 
     /* Cleanup */
@@ -265,7 +275,7 @@ void collect(BisTree* roots) {
   #endif
 }
 
-void *copy(BiTreeNode *from) {
+void *copy(void *from) {
   #ifdef COPY_COLLECT
 
     /* Verify */
@@ -299,7 +309,7 @@ void *copy(BiTreeNode *from) {
 
     /* Add to work list */
 
-    list_addlast(heap->workList, to);
+    list_addlast(heap->workList, to, fromHeader->size);
 
     return to;
 
@@ -312,7 +322,7 @@ void *copy(BiTreeNode *from) {
 void swap() {
   #ifdef COPY_COLLECT
 
-    char *tmp = heap->toSpace;
+    char *tmp = heap->fromSpace;
 
     heap->fromSpace = heap->toSpace;
     heap->toSpace = tmp;
@@ -323,7 +333,7 @@ void swap() {
   #endif
 }
 
-BiTreeNode *forward(BiTreeNode *node) {
+void *forward(void *node) {
   #ifdef COPY_COLLECT
 
     if (node == NULL) return NULL;
@@ -334,7 +344,7 @@ BiTreeNode *forward(BiTreeNode *node) {
         return copy(node);
     }
 
-    return (BiTreeNode *)header->forward;
+    return (void *)header->forward;
 
   #else
     printf("*error* to use forward() activate COPY_COLLECT");
@@ -342,7 +352,7 @@ BiTreeNode *forward(BiTreeNode *node) {
   #endif
 }
 
-void process(BiTreeNode **node) {
+void process(void **node) {
   #ifdef COPY_COLLECT
 
     if (*node != NULL) *node = forward(*node);
@@ -353,13 +363,13 @@ void process(BiTreeNode **node) {
   #endif
 }
 
-void copy_collection_gc(BisTree* roots) {
+void copy_collection_gc(void *objects, int n_objects) {
     printf("*collector* gcing()...\n");
 
     /* Copy and Collect*/
 
     printf("*collector* collecting()...\n");
-    collect(roots);
+    collect(objects, n_objects);
 
      return;
 }
