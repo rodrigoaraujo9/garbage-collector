@@ -41,6 +41,11 @@ void mark(char *object) {
     header->marked = 1;
 
     for (int i = 0; i < header->n_fields; i++) {
+        // create mask for bit i and AND with field_types
+        // if result is 0 => bit was 0.. so not a pointer
+        if (!(header->field_types & (1u << i)))
+            continue;
+
         void **field = (void **)((char *)object + header->field_offsets[i]);
 
         if (*field != NULL)
@@ -144,7 +149,6 @@ void compact(void *objects, int n_objects) {
             roots[i] = header->forward;
         }
     }
-
     scan = heap->base;
 
     while (scan < heap->top) {
@@ -155,11 +159,14 @@ void compact(void *objects, int n_objects) {
             char *object = scan + sizeof(_block_header);
 
             for (int i = 0; i < header->n_fields; i++) {
-                void **field =
-                    (void **)(object + header->field_offsets[i]);
+                if (!(header->field_types & (1u << i)))
+                    continue;
+
+                void **field = (void **)(object + header->field_offsets[i]);
 
                 if (*field != NULL) {
-                    _block_header *field_header = (_block_header *)((char *)(*field) - sizeof(_block_header));
+                    _block_header *field_header =
+                        (_block_header *)((char *)(*field) - sizeof(_block_header));
 
                     *field = field_header->forward;
                 }
@@ -254,6 +261,9 @@ void collect(void *objects, int n_objects) {
         _block_header *header = (_block_header *)((char *)object - sizeof(_block_header));
 
         for (int i = 0; i < header->n_fields; i++) {
+            if (!(header->field_types & (1u << i)))
+                continue;
+
             void **field = (void **)((char *)object + header->field_offsets[i]);
 
             process(field);

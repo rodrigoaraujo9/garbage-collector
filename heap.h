@@ -15,6 +15,7 @@ typedef struct {
   unsigned int size;
   unsigned int n_fields;
   unsigned int field_offsets[MAX_FIELDS];
+  unsigned int field_types; // bitwise each bit represents a field type in order
 #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
   void *forward;
 #endif
