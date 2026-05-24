@@ -59,7 +59,8 @@ void mark(char *object) {
 
 void sweep() {
   #ifdef MARK_SWEEP
-    //initialize first_freeb_h
+    heap->first_freeb_h = NULL;
+
     _block_header *current_header = (_block_header *)heap->base;
 
     while ((char *)current_header < heap->top) {

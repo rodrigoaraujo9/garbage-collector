@@ -85,18 +85,15 @@ void* my_malloc(unsigned int nbytes) {
 
     if (free != NULL) {
         free->marked = 0;
-        free->size = nbytes;
+        // free->size = nbytes;   // no shrink logic yet -> only when it propperly splits
         free->n_fields = 3;
         free->field_types = 0;
 
         free->field_offsets[0] = offsetof(BiTreeNode, left);
-        free->field_types |= (1u << 0);
-
         free->field_offsets[1] = offsetof(BiTreeNode, right);
-        free->field_types |= (1u << 1);
-
         free->field_offsets[2] = offsetof(BiTreeNode, data);
-        free->field_types &= ~(1u << 2);
+
+        free->field_types = (1u << 0) | (1u << 1); // 110..0000
 
         if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
         if (prev != NULL) prev->forward = free->forward;
@@ -167,8 +164,7 @@ void* my_malloc(unsigned int nbytes) {
 
     if (free != NULL) {
         free->marked = 0;
-        // // had to remove this one since it shrank blocks. !! think how to solve
-        // free->size = nbytes;
+        // free->size = nbytes;   // no shrink logic yet -> only when it propperly splits
         free->n_fields = 3;
         free->field_types = 0;
 
