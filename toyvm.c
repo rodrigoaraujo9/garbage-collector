@@ -1,28 +1,90 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "heap.h"
+#include "bistree.h"
+#include "globals.h"
+#include "collector.h"
+
+#if \
+   (defined(MARK_SWEEP) && defined(MARK_COMPACT)) || \
+   (defined(MARK_SWEEP) && defined(COPY_COLLECT)) || \
+   (defined(MARK_COMPACT) && defined(COPY_COLLECT))
+#error "*error* Define only one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
+#endif
+
+#define HEAP_SIZE (32 * 1024)  /* 2 KByte */
+
 int main(int argc, char* argv[] ) {
     int VM_threshold;
     int VM_loop_counter;
     int VM_roots_size;
     int VM_stack_size;
     int VM_stack_top;
-    int VM_stack[];
-    char VM_heap[];
-    char VM_program[];
-    char VM_roots[];
+    int *VM_stack;
+    BisTree *VM_roots;
+
+    if (argc < 5) {
+        fprintf(stderr, "*error* %s <threshold> <roots_size> <unused> <stack_size>\n", argv[0]);
+        return 1;
+    }
+
     /* initialize threshold */
     VM_threshold = atoi(argv[1]);
+
     /* initialize roots */
     VM_roots_size = atoi(argv[2]);
-    VM_roots = (tree*)malloc(VM_roots_size * sizeof(tree));
-    for(int i = 0; i < roots_size; i++)
-    VM_roots[i] = new_empty_tree();
+    VM_roots = (BisTree*)malloc(VM_roots_size * sizeof(BisTree));
+
+    if (VM_roots == NULL) {
+        fprintf(stderr, "*error* could not allocate VM_roots\n");
+        return 1;
+    }
+
+    for (int i = 0; i < VM_roots_size; i++)
+         bistree_init(&VM_roots[i]);
+
+    /*
+     * expose VM roots to the garbage collector
+     * these names must match globals.h
+     */
+    roots = VM_roots;
+    max_roots = VM_roots_size;
+
     /* initialize stack */
-    VM_stack_size = atoi(argv[3]);
+    VM_stack_size = atoi(argv[4]);
     VM_stack = (int*)malloc(VM_stack_size * sizeof(int));
+
+    if (VM_stack == NULL) {
+        fprintf(stderr, "*error* could not allocate VM_stack\n");
+        return 1;
+    }
+
     VM_stack_top = 0;
+
     /* initialize heap */
-    VM_heap = ...;
+    heap = (Heap*)malloc(sizeof(Heap));
+
+    if (heap == NULL) {
+        fprintf(stderr, "*error* could not allocate heap\n");
+        return 1;
+    }
+
+    #if defined(MARK_SWEEP)
+       heap_init(heap, HEAP_SIZE, mark_sweep_gc);
+    #elif defined(MARK_COMPACT)
+       heap_init(heap, HEAP_SIZE, mark_compact_gc);
+    #elif defined(COPY_COLLECT)
+       heap_init(heap, HEAP_SIZE, copy_collection_gc);
+    #else
+       #error "*error*     you must define one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
+    #endif
+
     /* initialize program */
     #define PAD 0x00
+
     char VM_program[] = {
         0x01, 0xc4,
         0x05, 0x14,
@@ -32,72 +94,126 @@ int main(int argc, char* argv[] ) {
         0x08, PAD,
         0x03, 0x10, /* __end = 16 = 0x10 */
         0x07, PAD,
-        0x01, PAD,
         0x02, 0x02, /* __loop = 2 = 0x02 */
         0x09, 0x00
     };
 
     /* run program */
     char* pc = VM_program;
+
     for( ; ; ) {
-        char opcode = pc[0];
+        unsigned char opcode = (unsigned char)pc[0];
+
         switch (opcode) {
             case 0x01:
                 /* llp */
-                VM_loop_counter = pc[1];
+                VM_loop_counter = (unsigned char)pc[1];
                 pc = pc + 2;
                 break;
+
             case 0x02:
                 /* jlp */
                 VM_loop_counter--;
-                if ( VM_loop_counter != 0 )
-                    pc = &VM_program[pc[1]];
+                if (VM_loop_counter != 0)
+                    pc = &VM_program[(unsigned char)pc[1]];
                 else
                     pc = pc + 2;
                 break;
+
             case 0x03:
                 /* j */
-                pc = &VM_program[pc[1]];
+                pc = &VM_program[(unsigned char)pc[1]];
                 break;
+
             case 0x04:
                 /* blt */
-                if ( VM_stack[--VM_stack_top] < VM_threshold )
-                    pc = &VM_program[pc[1]];
+                if (VM_stack_top <= 0) {
+                    fprintf(stderr, "*error* stack underflow in blt\n");
+                    exit(1);
+                }
+
+                if (VM_stack[--VM_stack_top] < VM_threshold)
+                    pc = &VM_program[(unsigned char)pc[1]];
                 else
                     pc = pc + 2;
                 break;
+
             case 0x05:
                 /* rnd */
-                VM_stack[VM_stack_top++] = rand() % pc[1];
+                if (VM_stack_top >= VM_stack_size) {
+                    fprintf(stderr, "*error* stack overflow in rnd\n");
+                    exit(1);
+                }
+
+                VM_stack[VM_stack_top++] = rand() % (unsigned char)pc[1];
                 pc = pc + 2;
                 break;
+
             case 0x06:
                 /* sel */
-                value_stack[VM_stack_top++] = rand() % roots_size;
+                if (VM_stack_top >= VM_stack_size) {
+                    fprintf(stderr, "*error* stack overflow in sel\n");
+                    exit(1);
+                }
+
+                VM_stack[VM_stack_top++] = rand() % VM_roots_size;
                 pc = pc + 2;
                 break;
-            case 0x07:
+
+            case 0x07: {
                 /* add */
-                int number = VM_stack[VM_stack_top - 1];
-                tree* root = &VM_roots[VM_stack[VM_stack_top - 2]];
-                bstree_insert(number, root);
+                if (VM_stack_top < 2) {
+                    fprintf(stderr, "*error* stack underflow in add\n");
+                    exit(1);
+                }
+
+                int number1 = VM_stack[VM_stack_top - 2];
+                int root_index1 = VM_stack[VM_stack_top - 1];
+
+                if (root_index1 < 0 || root_index1 >= VM_roots_size) {
+                    fprintf(stderr, "*error* invalid root index in add: %d\n", root_index1);
+                    exit(1);
+                }
+
+                BisTree* root1 = &VM_roots[root_index1];
+                bistree_insert(root1, number1);
+
                 VM_stack_top = VM_stack_top - 2;
                 pc = pc + 2;
                 break;
-            case 0x08:
+            }
+
+            case 0x08: {
                 /* del */
-                int number = VM_stack[VM_stack_top - 1];
-                tree* root = &VM_roots[VM_stack[VM_stack_top - 2]];
-                bstree_delete(number, root);
+                if (VM_stack_top < 2) {
+                    fprintf(stderr, "*error* stack underflow in del\n");
+                    exit(1);
+                }
+
+                int number2 = VM_stack[VM_stack_top - 2];
+                int root_index2 = VM_stack[VM_stack_top - 1];
+
+                if (root_index2 < 0 || root_index2 >= VM_roots_size) {
+                    fprintf(stderr, "*error* invalid root index in del: %d\n", root_index2);
+                    exit(1);
+                }
+
+                BisTree* root2 = &VM_roots[root_index2];
+                bistree_remove(root2, number2);
+
                 VM_stack_top = VM_stack_top - 2;
                 pc = pc + 2;
                 break;
+            }
+
             case 0x09:
                 /* quit */
+                printf("*success* toyvm finished\n");
                 exit(0);
+
             default:
                 /* error, exit */
-                printf("%x: unkown opcode\n");
+                printf("0x%02x: unknown opcode\n", opcode);
                 exit(1);
         }
     }

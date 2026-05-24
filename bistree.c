@@ -29,23 +29,28 @@ bool bistree_lookup(BisTree* tree, int data) {
     return bitreenode_lookup(tree->root, data);
 }
 
-BiTreeNode* bitreenode_insert(BiTreeNode* node, BiTreeNode* new_node) {
-    if (node == NULL)
-        return new_node;
+BiTreeNode* bitreenode_insert(BiTreeNode* node, int data, BiTreeNode* new_node) {
+    if (node == NULL) {
+        BiTreeNode* node = new_node;
+        node->data = data;
+        node->left = NULL;
+        node->right= NULL;
+        return node;
+     }
 
     if (new_node->data < node->data)
-        node->left = bitreenode_insert(node->left, new_node);
+        node->left = bitreenode_insert(node->left, data, new_node);
     else
-        node->right = bitreenode_insert(node->right, new_node);
+        node->right = bitreenode_insert(node->right, data, new_node);
 
     return node;
 }
 
 bool bistree_insert(BisTree* tree, int data) {
+    BiTreeNode *node = (BiTreeNode *)my_malloc(sizeof(BiTreeNode));
+
     if (bistree_lookup(tree, data))
         return true;
-
-    BiTreeNode *node = (BiTreeNode *)my_malloc(sizeof(BiTreeNode));
 
     if (node == NULL)
         return false;
@@ -67,7 +72,7 @@ bool bistree_insert(BisTree* tree, int data) {
     node->left = NULL;
     node->right = NULL;
 
-    tree->root = bitreenode_insert(tree->root, node);
+    tree->root = bitreenode_insert(tree->root, data, node);
     tree->size++;
 
     return true;

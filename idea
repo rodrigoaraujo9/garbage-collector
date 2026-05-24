@@ -1,7 +1,2 @@
 optimizations:
     freeb -> embutido -> em vez de ser separada está embutida no forward pointer
-    offset (for flexible size) and header bits for pointer/const [0,1,1,0] -> remove tree structure and adapt
-        adapt sweep to add to freeb with variable size of space
-        adapt list to handle items of multiple sizes and explicit their size for verification
-        remove tree structure from everywhere and adapt to be flexible
-        order freeb by size of empty space
