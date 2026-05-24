@@ -10,13 +10,6 @@
 #include "globals.h"
 #include "collector.h"
 
-#define FIELD_CONST 0
-#define FIELD_PTR   1
-
-#define FIELD_SET_PTR(h, i)    ((h)->field_types |=  (1u << (i)))
-#define FIELD_SET_CONST(h, i)  ((h)->field_types &= ~(1u << (i)))
-#define FIELD_IS_PTR(h, i)     (((h)->field_types >> (i)) & 1u)
-
 void heap_init(Heap* heap, unsigned int size, void (*collector)(void *, int)){
     heap->base  = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
     heap->size  = size;
@@ -57,11 +50,20 @@ void* my_malloc(unsigned int nbytes) {
 
         h->marked = 0;
         h->size = nbytes;
-        h->n_fields = 0;
+
+        h->n_fields = 3;
         h->field_types = 0;
 
-        for (int i = 0; i < MAX_FIELDS; i++)
-            h->field_offsets[i] = 0;
+        h->field_offsets[0] = offsetof(BiTreeNode, left);
+
+        h->field_offsets[0] = offsetof(BiTreeNode, left);
+        h->field_types |= (1u << 0);
+
+        h->field_offsets[1] = offsetof(BiTreeNode, right);
+        h->field_types |= (1u << 1);
+
+        h->field_offsets[2] = offsetof(BiTreeNode, data);
+        h->field_types &= ~(1u << 2);
 
       #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
@@ -87,11 +89,17 @@ void* my_malloc(unsigned int nbytes) {
 
         h->marked = 0;
         h->size = nbytes;
-        h->n_fields = 0;
+        h->n_fields = 3;
         h->field_types = 0;
 
-        for (int j = 0; j < MAX_FIELDS; j++)
-            h->field_offsets[j] = 0;
+        h->field_offsets[0] = offsetof(BiTreeNode, left);
+        h->field_types |= (1u << 0);
+
+        h->field_offsets[1] = offsetof(BiTreeNode, right);
+        h->field_types |= (1u << 1);
+
+        h->field_offsets[2] = offsetof(BiTreeNode, data);
+        h->field_types &= ~(1u << 2);
 
   #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
@@ -125,11 +133,17 @@ void* my_malloc(unsigned int nbytes) {
 
         h->marked = 0;
         h->size = nbytes;
-        h->n_fields = 0;
+        h->n_fields = 3;
         h->field_types = 0;
 
-        for (int i = 0; i < MAX_FIELDS; i++)
-            h->field_offsets[i] = 0;
+        h->field_offsets[0] = offsetof(BiTreeNode, left);
+        h->field_types |= (1u << 0);
+
+        h->field_offsets[1] = offsetof(BiTreeNode, right);
+        h->field_types |= (1u << 1);
+
+        h->field_offsets[2] = offsetof(BiTreeNode, data);
+        h->field_types &= ~(1u << 2);
 
   #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
@@ -155,11 +169,17 @@ void* my_malloc(unsigned int nbytes) {
 
         h->marked = 0;
         h->size = nbytes;
-        h->n_fields = 0;
+        h->n_fields = 3;
         h->field_types = 0;
 
-        for (int j = 0; j < MAX_FIELDS; j++)
-            h->field_offsets[j] = 0;
+        h->field_offsets[0] = offsetof(BiTreeNode, left);
+        h->field_types |= (1u << 0);
+
+        h->field_offsets[1] = offsetof(BiTreeNode, right);
+        h->field_types |= (1u << 1);
+
+        h->field_offsets[2] = offsetof(BiTreeNode, data);
+        h->field_types &= ~(1u << 2);
 
   #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;

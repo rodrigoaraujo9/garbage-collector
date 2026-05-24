@@ -55,19 +55,6 @@ bool bistree_insert(BisTree* tree, int data) {
     if (node == NULL)
         return false;
 
-    _block_header *h = (_block_header *)((char *)node - sizeof(_block_header));
-
-    h->n_fields = 3;
-
-    h->field_offsets[0] = offsetof(BiTreeNode, left);
-    h->field_types |= (1u << 0);
-
-    h->field_offsets[1] = offsetof(BiTreeNode, right);
-    h->field_types |= (1u << 1);
-
-    h->field_offsets[2] = offsetof(BiTreeNode, data);
-    h->field_types &= ~(1u << 2);
-
     node->data = data;
     node->left = NULL;
     node->right = NULL;
