@@ -53,16 +53,11 @@ void* my_malloc(unsigned int nbytes) {
         h->n_fields = 3;
         h->field_types = 0;
 
-        h->field_offsets[0] = offsetof(BiTreeNode, left);
+        h->field_offsets[0] = offsetof(BiTreeNode, data);
+        h->field_offsets[1] = offsetof(BiTreeNode, left);
+        h->field_offsets[2] = offsetof(BiTreeNode, right);
 
-        h->field_offsets[0] = offsetof(BiTreeNode, left);
-        h->field_types |= (1u << 0);
-
-        h->field_offsets[1] = offsetof(BiTreeNode, right);
-        h->field_types |= (1u << 1);
-
-        h->field_offsets[2] = offsetof(BiTreeNode, data);
-        h->field_types &= ~(1u << 2);
+        h->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
       #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
@@ -89,11 +84,11 @@ void* my_malloc(unsigned int nbytes) {
         free->n_fields = 3;
         free->field_types = 0;
 
-        free->field_offsets[0] = offsetof(BiTreeNode, left);
-        free->field_offsets[1] = offsetof(BiTreeNode, right);
-        free->field_offsets[2] = offsetof(BiTreeNode, data);
+        free->field_offsets[0] = offsetof(BiTreeNode, data);
+        free->field_offsets[1] = offsetof(BiTreeNode, left);
+        free->field_offsets[2] = offsetof(BiTreeNode, right);
 
-        free->field_types = (1u << 0) | (1u << 1); // 110..0000
+        free->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
         if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
         if (prev != NULL) prev->forward = free->forward;
@@ -136,14 +131,11 @@ void* my_malloc(unsigned int nbytes) {
         h->n_fields = 3;
         h->field_types = 0;
 
-        h->field_offsets[0] = offsetof(BiTreeNode, left);
-        h->field_types |= (1u << 0);
+        h->field_offsets[0] = offsetof(BiTreeNode, data);
+        h->field_offsets[1] = offsetof(BiTreeNode, left);
+        h->field_offsets[2] = offsetof(BiTreeNode, right);
 
-        h->field_offsets[1] = offsetof(BiTreeNode, right);
-        h->field_types |= (1u << 1);
-
-        h->field_offsets[2] = offsetof(BiTreeNode, data);
-        h->field_types &= ~(1u << 2);
+        h->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
         h->forward = NULL;
 
@@ -168,14 +160,11 @@ void* my_malloc(unsigned int nbytes) {
         free->n_fields = 3;
         free->field_types = 0;
 
-        free->field_offsets[0] = offsetof(BiTreeNode, left);
-        free->field_types |= (1u << 0);
+        free->field_offsets[0] = offsetof(BiTreeNode, data);
+        free->field_offsets[1] = offsetof(BiTreeNode, left);
+        free->field_offsets[2] = offsetof(BiTreeNode, right);
 
-        free->field_offsets[1] = offsetof(BiTreeNode, right);
-        free->field_types |= (1u << 1);
-
-        free->field_offsets[2] = offsetof(BiTreeNode, data);
-        free->field_types &= ~(1u << 2);
+        free->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
         if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
         if (prev != NULL) prev->forward = free->forward;
