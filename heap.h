@@ -16,9 +16,7 @@ typedef struct {
   unsigned int n_fields;
   unsigned int field_offsets[MAX_FIELDS];
   unsigned int field_types; // bitwise each bit represents a field type in order
-#if defined(MARK_COMPACT) || defined(COPY_COLLECT)
   void *forward;
-#endif
 } _block_header;
 
 typedef struct {
@@ -26,9 +24,8 @@ typedef struct {
   char *base;
   char *top;
   char *limit;
-#ifdef MARK_SWEEP
-  List *freeb;
-#endif
+  _block_header
+      *first_freeb_h; // points to the first free space -> it is a blockheader
   void (*collector)(void *, int);
 #ifdef COPY_COLLECT
   char *fromSpace;

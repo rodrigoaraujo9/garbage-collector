@@ -59,10 +59,7 @@ void mark(char *object) {
 
 void sweep() {
   #ifdef MARK_SWEEP
-    while (!list_isempty(heap->freeb)) {
-        list_removefirst(heap->freeb);
-    }
-
+    //initialize first_freeb_h
     _block_header *current_header = (_block_header *)heap->base;
 
     while ((char *)current_header < heap->top) {
@@ -74,8 +71,23 @@ void sweep() {
         }
 
         if (!current_header->marked) {
-            void *p = (char *)current_header + sizeof(_block_header);
-            list_addordered(heap->freeb, p, current_header->size);
+            // iterate from freeb until free block bigger than our one. change foward pointers so it fits in middle.
+            // if gets to end point to null and last that was there point to it.
+            _block_header *free = heap->first_freeb_h;
+            while (free != NULL && free->size < current_header->size) {
+                free = free->forward;
+            }
+            if (free == heap->first_freeb_h) {
+                current_header->forward = heap->first_freeb_h;
+                heap->first_freeb_h = current_header;
+            } else {
+                _block_header *prev = heap->first_freeb_h;
+                while (prev->forward != free) {
+                    prev = prev->forward;
+                }
+                prev->forward = current_header;
+                current_header->forward = free;
+            }
         } else {
             current_header->marked = 0;
         }

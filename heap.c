@@ -18,8 +18,7 @@ void heap_init(Heap* heap, unsigned int size, void (*collector)(void *, int)){
     heap->collector = collector;
 
   #ifdef MARK_SWEEP
-    heap->freeb = (List*)malloc(sizeof(List));
-    list_init(heap->freeb);
+    heap->first_freeb_h = NULL;
   #endif
 
   #ifdef COPY_COLLECT
@@ -76,38 +75,42 @@ void* my_malloc(unsigned int nbytes) {
     }
 
   #ifdef MARK_SWEEP
-    while (!list_isempty(heap->freeb)) {
-        int i;
-        void *p = list_getfirstbigger(heap->freeb, nbytes, &i);
-
-        if (p == NULL)
-            break;
-
-        list_remove(heap->freeb, i);
-
-        _block_header *h = (_block_header *)((char *)p - sizeof(_block_header));
-
-        h->marked = 0;
-        h->size = nbytes;
-        h->n_fields = 3;
-        h->field_types = 0;
-
-        h->field_offsets[0] = offsetof(BiTreeNode, left);
-        h->field_types |= (1u << 0);
-
-        h->field_offsets[1] = offsetof(BiTreeNode, right);
-        h->field_types |= (1u << 1);
-
-        h->field_offsets[2] = offsetof(BiTreeNode, data);
-        h->field_types &= ~(1u << 2);
-
-  #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
-        h->forward = NULL;
-  #endif
-
-        return p;
+    _block_header *free = heap->first_freeb_h;
+    _block_header *prev = NULL;
+    while (free!=NULL && free->size < nbytes) {
+        // iterate from freeb until the first free block that accomodates the nbytes
+        prev = free;
+        free = free->forward;
     }
+
+    if (free != NULL) {
+        free->marked = 0;
+        free->size = nbytes;
+        free->n_fields = 3;
+        free->field_types = 0;
+
+        free->field_offsets[0] = offsetof(BiTreeNode, left);
+        free->field_types |= (1u << 0);
+
+        free->field_offsets[1] = offsetof(BiTreeNode, right);
+        free->field_types |= (1u << 1);
+
+        free->field_offsets[2] = offsetof(BiTreeNode, data);
+        free->field_types &= ~(1u << 2);
+
+        if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
+        if (prev != NULL) prev->forward = free->forward;
+
+        free->forward = NULL;
+
+        return (char *)free + sizeof(_block_header);
+    }
+
+
   #endif
+
+
+
 
     printf("\n\n");
     printf("*my_malloc* not enough space, performing GC...\n");
@@ -145,9 +148,7 @@ void* my_malloc(unsigned int nbytes) {
         h->field_offsets[2] = offsetof(BiTreeNode, data);
         h->field_types &= ~(1u << 2);
 
-  #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
-  #endif
 
         void *p = heap->top + sizeof(_block_header);
         heap->top += total;
@@ -156,36 +157,36 @@ void* my_malloc(unsigned int nbytes) {
     }
 
   #ifdef MARK_SWEEP
-    while (!list_isempty(heap->freeb)) {
-        int i;
-        void *p = list_getfirstbigger(heap->freeb, nbytes, &i);
+    free = heap->first_freeb_h;
+    prev = NULL;
+    while (free!=NULL && free->size < nbytes) {
+        // iterate from freeb until the first free block that accomodates the nbytes
+        prev = free;
+        free = free->forward;
+    }
 
-        if (p == NULL)
-            break;
+    if (free != NULL) {
+        free->marked = 0;
+        // // had to remove this one since it shrank blocks. !! think how to solve
+        // free->size = nbytes;
+        free->n_fields = 3;
+        free->field_types = 0;
 
-        list_remove(heap->freeb, i);
+        free->field_offsets[0] = offsetof(BiTreeNode, left);
+        free->field_types |= (1u << 0);
 
-        _block_header *h = (_block_header *)((char *)p - sizeof(_block_header));
+        free->field_offsets[1] = offsetof(BiTreeNode, right);
+        free->field_types |= (1u << 1);
 
-        h->marked = 0;
-        h->size = nbytes;
-        h->n_fields = 3;
-        h->field_types = 0;
+        free->field_offsets[2] = offsetof(BiTreeNode, data);
+        free->field_types &= ~(1u << 2);
 
-        h->field_offsets[0] = offsetof(BiTreeNode, left);
-        h->field_types |= (1u << 0);
+        if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
+        if (prev != NULL) prev->forward = free->forward;
 
-        h->field_offsets[1] = offsetof(BiTreeNode, right);
-        h->field_types |= (1u << 1);
+        free->forward = NULL;
 
-        h->field_offsets[2] = offsetof(BiTreeNode, data);
-        h->field_types &= ~(1u << 2);
-
-  #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
-        h->forward = NULL;
-  #endif
-
-        return p;
+        return (char *)free + sizeof(_block_header);
     }
   #endif
 
