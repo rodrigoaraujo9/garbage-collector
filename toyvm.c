@@ -17,6 +17,19 @@
 
 #define HEAP_SIZE (32 * 1024)  /* 2 KByte */
 
+typedef enum {
+    LLP  = 0x01,
+    JLP  = 0x02,
+    J    = 0x03,
+    BLT  = 0x04,
+    RND  = 0x05,
+    SEL  = 0x06,
+    ADD  = 0x07,
+    DEL  = 0x08,
+    QUIT = 0x09,
+    PAD  = 0x00
+} Opcode;
+
 int main(int argc, char* argv[] ) {
     int VM_threshold;
     int VM_loop_counter;
@@ -83,19 +96,17 @@ int main(int argc, char* argv[] ) {
     #endif
 
     /* initialize program */
-    #define PAD 0x00
-
     char VM_program[] = {
-        0x01, 0xc4,
-        0x05, 0x14,
-        0x06, PAD,
-        0x05, 0xc4,
-        0x04, 0x0e, /* __add = 14 = 0x0e */
-        0x08, PAD,
-        0x03, 0x10, /* __end = 16 = 0x10 */
-        0x07, PAD,
-        0x02, 0x02, /* __loop = 2 = 0x02 */
-        0x09, 0x00
+        LLP,  0xc4,
+        RND,  0x14,
+        SEL,  PAD,
+        RND,  0xc4,
+        BLT,  0x0e, /* __add = 14 = 0x0e */
+        DEL,  PAD,
+        J,    0x10, /* __end = 16 = 0x10 */
+        ADD,  PAD,
+        JLP,  0x02, /* __loop = 2 = 0x02 */
+        QUIT, 0x00
     };
 
     /* run program */
@@ -104,64 +115,82 @@ int main(int argc, char* argv[] ) {
     for( ; ; ) {
         unsigned char opcode = (unsigned char)pc[0];
 
-        switch (opcode) {
-            case 0x01:
-                /* llp */
+        switch ((Opcode)opcode) {
+            case LLP:
                 VM_loop_counter = (unsigned char)pc[1];
+                printf("*debug* llp: loop counter set to %d\n", VM_loop_counter);
                 pc = pc + 2;
                 break;
 
-            case 0x02:
-                /* jlp */
+            case JLP:
                 VM_loop_counter--;
-                if (VM_loop_counter != 0)
+                printf("*debug* jlp: loop counter now %d\n", VM_loop_counter);
+
+                if (VM_loop_counter != 0) {
+                    printf("*debug* jlp: jumping back to %d\n", (unsigned char)pc[1]);
                     pc = &VM_program[(unsigned char)pc[1]];
-                else
+                } else {
+                    printf("*debug* jlp: loop finished\n");
                     pc = pc + 2;
+                }
                 break;
 
-            case 0x03:
-                /* j */
+            case J:
                 pc = &VM_program[(unsigned char)pc[1]];
                 break;
 
-            case 0x04:
-                /* blt */
-                if (VM_stack_top <= 0) {
-                    fprintf(stderr, "*error* stack underflow in blt\n");
-                    exit(1);
+                case BLT: {
+                    if (VM_stack_top <= 0) {
+                        fprintf(stderr, "*error* stack underflow in blt\n");
+                        exit(1);
+                    }
+
+                    int value = VM_stack[--VM_stack_top];
+
+                    printf("*debug* blt: comparing %d < %d\n", value, VM_threshold);
+
+                    if (value < VM_threshold) {
+                        printf("*debug* blt: true, jumping to %d\n", (unsigned char)pc[1]);
+                        pc = &VM_program[(unsigned char)pc[1]];
+                    } else {
+                        printf("*debug* blt: false, continuing\n");
+                        pc = pc + 2;
+                    }
+
+                    break;
                 }
 
-                if (VM_stack[--VM_stack_top] < VM_threshold)
-                    pc = &VM_program[(unsigned char)pc[1]];
-                else
-                    pc = pc + 2;
-                break;
-
-            case 0x05:
-                /* rnd */
+            case RND: {
                 if (VM_stack_top >= VM_stack_size) {
                     fprintf(stderr, "*error* stack overflow in rnd\n");
                     exit(1);
                 }
 
-                VM_stack[VM_stack_top++] = rand() % (unsigned char)pc[1];
+                int value = rand() % (unsigned char)pc[1];
+                VM_stack[VM_stack_top++] = value;
+
+                printf("*debug* rnd: pushed random value %d\n", value);
+
                 pc = pc + 2;
                 break;
+            }
 
-            case 0x06:
-                /* sel */
+            case SEL: {
                 if (VM_stack_top >= VM_stack_size) {
                     fprintf(stderr, "*error* stack overflow in sel\n");
                     exit(1);
                 }
 
-                VM_stack[VM_stack_top++] = rand() % VM_roots_size;
+                int root_index = rand() % VM_roots_size;
+                VM_stack[VM_stack_top++] = root_index;
+
+                printf("*debug* sel: selected root %d\n", root_index);
+
                 pc = pc + 2;
                 break;
+            }
 
-            case 0x07: {
-                /* add */
+            case ADD: {
                 if (VM_stack_top < 2) {
                     fprintf(stderr, "*error* stack underflow in add\n");
                     exit(1);
@@ -178,13 +207,14 @@ int main(int argc, char* argv[] ) {
                 BisTree* root1 = &VM_roots[root_index1];
                 bistree_insert(root1, number1);
 
+                printf("*debug* add: inserted %d into root %d\n", number1, root_index1);
+
                 VM_stack_top = VM_stack_top - 2;
                 pc = pc + 2;
                 break;
             }
 
-            case 0x08: {
-                /* del */
+            case DEL: {
                 if (VM_stack_top < 2) {
                     fprintf(stderr, "*error* stack underflow in del\n");
                     exit(1);
@@ -201,18 +231,19 @@ int main(int argc, char* argv[] ) {
                 BisTree* root2 = &VM_roots[root_index2];
                 bistree_remove(root2, number2);
 
+                printf("*debug* del: removed %d from root %d\n", number2, root_index2);
+
                 VM_stack_top = VM_stack_top - 2;
                 pc = pc + 2;
                 break;
             }
 
-            case 0x09:
-                /* quit */
+            case QUIT:
+                printf("*debug* quit: program reached end instruction\n");
                 printf("*success* toyvm finished\n");
                 exit(0);
 
             default:
-                /* error, exit */
                 printf("0x%02x: unknown opcode\n", opcode);
                 exit(1);
         }

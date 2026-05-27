@@ -2,6 +2,8 @@
  * the heap
  */
 
+// use bitree init to set things up instead of being directly in the malloc ??
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
