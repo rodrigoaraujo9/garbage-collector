@@ -147,10 +147,6 @@ void* my_malloc(unsigned int nbytes) {
         free->n_fields = 3;
         free->field_types = 0;
 
-        free->field_offsets[0] = offsetof(BiTreeNode, data);
-        free->field_offsets[1] = offsetof(BiTreeNode, left);
-        free->field_offsets[2] = offsetof(BiTreeNode, right);
-
         free->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
         if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;

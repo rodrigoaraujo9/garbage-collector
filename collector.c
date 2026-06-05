@@ -51,7 +51,7 @@ void mark(char *object) {
 
         void **field = (void **)((char *)object + offset);
 
-        offset = OFFSET((header->field_types & (1u << i))));
+        offset += OFFSET((header->field_types & (1u << i))));
 
         if (*field != NULL)
             mark((char *)(*field));
@@ -184,7 +184,7 @@ void compact(void *objects, int n_objects) {
 
                 void **field = (void **)((char *)object + offset);
 
-                offset = OFFSET((header->field_types & (1u << i))));
+                offset += OFFSET((header->field_types & (1u << i))));
 
                 if (*field != NULL) {
                     _block_header *field_header =
@@ -290,7 +290,7 @@ void collect(void *objects, int n_objects) {
 
             void **field = (void **)((char *)object + offset);
 
-            offset = OFFSET((header->field_types & (1u << i))));
+            offset += OFFSET((header->field_types & (1u << i))));
 
             process(field);
         }
