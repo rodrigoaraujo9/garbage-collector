@@ -10,11 +10,12 @@
 
 #define MAX_FIELDS 8
 
-typedef struct {
+#define OFFSET(i) ((i == 0 ? sizeof(char)  : sizeof(char *))
+
+typedef struct __attribute__((packed)) {
   unsigned int marked;
   unsigned int size;
   unsigned int n_fields;
-  unsigned int field_offsets[MAX_FIELDS];
   unsigned int field_types; // bitwise each bit represents a field type in order
   void *forward;
 } _block_header;

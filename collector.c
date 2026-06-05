@@ -40,13 +40,18 @@ void mark(char *object) {
 
     header->marked = 1;
 
+    size_t offset = 0;
+
     for (int i = 0; i < header->n_fields; i++) {
         // create mask for bit i and AND with field_types
         // if result is 0 => bit was 0.. so not a pointer
-        if (!(header->field_types & (1u << i)))
+        if (!(header->field_types & (1u << i))){
             continue;
+        }
 
-        void **field = (void **)((char *)object + header->field_offsets[i]);
+        void **field = (void **)((char *)object + offset);
+
+        offset = OFFSET((header->field_types & (1u << i))));
 
         if (*field != NULL)
             mark((char *)(*field));
@@ -171,11 +176,15 @@ void compact(void *objects, int n_objects) {
         if (header->marked) {
             char *object = scan + sizeof(_block_header);
 
+            size_t offset = 0;
+
             for (int i = 0; i < header->n_fields; i++) {
                 if (!(header->field_types & (1u << i)))
                     continue;
 
-                void **field = (void **)(object + header->field_offsets[i]);
+                void **field = (void **)((char *)object + offset);
+
+                offset = OFFSET((header->field_types & (1u << i))));
 
                 if (*field != NULL) {
                     _block_header *field_header =
@@ -273,11 +282,15 @@ void collect(void *objects, int n_objects) {
 
         _block_header *header = (_block_header *)((char *)object - sizeof(_block_header));
 
+        size_t offset = 0;
+
         for (int i = 0; i < header->n_fields; i++) {
             if (!(header->field_types & (1u << i)))
                 continue;
 
-            void **field = (void **)((char *)object + header->field_offsets[i]);
+            void **field = (void **)((char *)object + offset);
+
+            offset = OFFSET((header->field_types & (1u << i))));
 
             process(field);
         }

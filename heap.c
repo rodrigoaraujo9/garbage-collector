@@ -55,10 +55,6 @@ void* my_malloc(unsigned int nbytes) {
         h->n_fields = 3;
         h->field_types = 0;
 
-        h->field_offsets[0] = offsetof(BiTreeNode, data);
-        h->field_offsets[1] = offsetof(BiTreeNode, left);
-        h->field_offsets[2] = offsetof(BiTreeNode, right);
-
         h->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
       #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
@@ -85,10 +81,6 @@ void* my_malloc(unsigned int nbytes) {
         // free->size = nbytes;   // no shrink logic yet -> only when it propperly splits
         free->n_fields = 3;
         free->field_types = 0;
-
-        free->field_offsets[0] = offsetof(BiTreeNode, data);
-        free->field_offsets[1] = offsetof(BiTreeNode, left);
-        free->field_offsets[2] = offsetof(BiTreeNode, right);
 
         free->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
@@ -129,10 +121,6 @@ void* my_malloc(unsigned int nbytes) {
         h->size = nbytes;
         h->n_fields = 3;
         h->field_types = 0;
-
-        h->field_offsets[0] = offsetof(BiTreeNode, data);
-        h->field_offsets[1] = offsetof(BiTreeNode, left);
-        h->field_offsets[2] = offsetof(BiTreeNode, right);
 
         h->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
 
