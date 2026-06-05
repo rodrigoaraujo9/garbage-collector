@@ -14,7 +14,7 @@ void heap_init(Heap* heap, unsigned int size, void (*collector)(void *, int)){
     heap->collector = collector;
 
   #ifdef MARK_SWEEP
-    heap->first_freeb_h = NULL;
+    heap->free_h = NULL;
   #endif
 
   #ifdef COPY_COLLECT
@@ -60,7 +60,7 @@ void* my_malloc(unsigned int nbytes) {
     }
 
   #ifdef MARK_SWEEP
-    _block_header *free = heap->first_freeb_h;
+    _block_header *free = heap->free_h;
     _block_header *prev = NULL;
     while (free!=NULL && free->size < nbytes) {
         prev = free;
@@ -73,7 +73,7 @@ void* my_malloc(unsigned int nbytes) {
         free->n_fields = 3;
         free->field_types = (1u << 1) | (1u << 2);
 
-        if (free == heap->first_freeb_h) heap->first_freeb_h = free->forward;
+        if (free == heap->free_h) heap->free_h = free->forward;
         if (prev != NULL) prev->forward = free->forward;
 
         free->forward = NULL;
@@ -121,7 +121,7 @@ void* my_malloc(unsigned int nbytes) {
     }
 
   #ifdef MARK_SWEEP
-    free = heap->first_freeb_h;
+    free = heap->free_h;
     prev = NULL;
     while (free != NULL && free->size < nbytes) {
         prev = free;
@@ -134,7 +134,7 @@ void* my_malloc(unsigned int nbytes) {
         free->n_fields = 3;
         free->field_types = (1u << 1) | (1u << 2);
 
-        if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
+        if (free==heap->free_h) heap->free_h = free->forward;
         if (prev != NULL) prev->forward = free->forward;
 
         free->forward = NULL;

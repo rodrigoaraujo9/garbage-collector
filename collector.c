@@ -20,7 +20,7 @@ void compact(void *objects, int n_objects);
 void collect(void *objects, int n_objects);
 void *copy(void *from);
 void swap();
-void *forward(void *fromRef);
+void *forward(void *node);
 void process(void **node);
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */
@@ -60,7 +60,7 @@ void mark(char *object) {
 
 void sweep() {
   #ifdef MARK_SWEEP
-    heap->first_freeb_h = NULL;
+    heap->free_h = NULL;
 
     _block_header *current_header = (_block_header *)heap->base;
 
@@ -73,15 +73,15 @@ void sweep() {
         }
 
         if (!current_header->marked) {
-            _block_header *free = heap->first_freeb_h;
+            _block_header *free = heap->free_h;
             while (free != NULL && free->size < current_header->size) {
                 free = free->forward;
             }
-            if (free == heap->first_freeb_h) {
-                current_header->forward = heap->first_freeb_h;
-                heap->first_freeb_h = current_header;
+            if (free == heap->free_h) {
+                current_header->forward = heap->free_h;
+                heap->free_h = current_header;
             } else {
-                _block_header *prev = heap->first_freeb_h;
+                _block_header *prev = heap->free_h;
                 while (prev->forward != free) {
                     prev = prev->forward;
                 }

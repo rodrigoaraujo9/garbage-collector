@@ -24,12 +24,13 @@ typedef struct {
   char *base;
   char *top;
   char *limit;
-  _block_header *first_freeb_h;
   void (*collector)(void *, int);
 #ifdef COPY_COLLECT
   char *from;
   char *to;
-  List *wip;
+  _block_header *wip_h; // header for first mem slot in "worklist"
+#elif MARK_SWEEP
+  _block_header *free_h; // header for first mem slot in "freelist"
 #endif
 } Heap;
 
