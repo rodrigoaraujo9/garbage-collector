@@ -29,10 +29,6 @@ void list_addfirst(List *list, void *data, size_t size);
 
 void list_addlast(List *list, void *data, size_t size);
 
-void list_addordered(List *list, void *data, size_t size);
-
-void *list_getfirstbigger(List *list, size_t size, int *i);
-
 void *list_getfirst(List *list);
 
 void *list_getlast(List *list);
@@ -42,8 +38,6 @@ void *list_get(List *list, int index);
 void list_removefirst(List *list);
 
 void list_removelast(List *list);
-
-void list_remove(List *list, int index);
 
 void list_print(List *list);
 

@@ -103,9 +103,6 @@ void* my_malloc(unsigned int nbytes) {
 
   #endif
 
-
-
-
     printf("\n\n");
     printf("*my_malloc* not enough space, performing GC...\n");
 
