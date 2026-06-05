@@ -78,7 +78,7 @@ void sweep() {
                 free = free->forward;
             }
             if (free == heap->free_h) {
-                current_header->forward = heap->free_h;
+                current_header->forward = NULL;
                 heap->free_h = current_header;
             } else {
                 _block_header *prev = heap->free_h;
@@ -253,11 +253,8 @@ void collect(void *objects, int n_objects) {
 
     /* Cleanup */
 
-    while (!list_isempty(heap->wip)) {
-        list_removefirst(heap->wip);
-    }
+    heap->wip_h = NULL;
 
-    heap->base  = heap->to;
     heap->top   = heap->to;
     heap->limit = heap->to + heap->size / 2;
 
@@ -271,26 +268,25 @@ void collect(void *objects, int n_objects) {
 
     /* Process Remaining Nodes */
 
-    while (!list_isempty(heap->wip)) {
-        void *object = list_getfirst(heap->wip);
-        list_removefirst(heap->wip);
+    while (heap->wip_h != NULL) {
+        _block_header *header = heap->wip_h;
+        _block_header *next = (_block_header *)header->forward;
 
-        _block_header *header = (_block_header *)((char *)object - sizeof(_block_header));
+        heap->wip_h = next;
+        header->forward = NULL;
 
-        char *offset = (char *)object;
+        char *object = (char *)header + sizeof(_block_header);
+        char *offset = object;
 
         for (int i = 0; i < header->n_fields; i++) {
-            bool is_pointer = (header->field_types & (1u << i));
+            bool is_pointer = header->field_types & (1u << i);
 
-            if (!is_pointer){
-                offset += OFFSET(is_pointer);
-                continue;
+            if (is_pointer) {
+                void **field = (void **)offset;
+                process(field);
             }
 
-            void **field = (void **)offset;
-            offset += OFFSET(is_pointer);
-
-            process(field);
+        offset += OFFSET(is_pointer);
         }
     }
 
@@ -323,24 +319,36 @@ void *copy(void *from) {
 
     /* Move */
 
-    char *to_header = heap->top;
-    char *to = to_header + sizeof(_block_header);
+    _block_header *to_header = (_block_header *) heap->top;
+    char *to = (char *)to_header + sizeof(_block_header);
 
     memcpy(to_header, from_header, size);
 
     /* Cleanup */
 
-    ((_block_header *)to_header)->forward = NULL;
-    ((_block_header *)to_header)->marked  = 0;
+    to_header->forward = NULL;
+    to_header->marked  = 0;
 
     /* Forward */
 
     from_header->forward = to;
-    heap->top = to_header + size;
+    heap->top = (char *)to_header + size;
 
     /* Add to work list */
 
-    list_addlast(heap->wip, to, from_header->size);
+    to_header->forward = NULL;
+
+    if (heap->wip_h == NULL) {
+        heap->wip_h = to_header;
+    } else {
+        _block_header *needle = heap->wip_h;
+
+        while (needle->forward != NULL) {
+            needle = (_block_header *)needle->forward;
+        }
+
+        needle->forward = to_header;
+    }
 
     return to;
 

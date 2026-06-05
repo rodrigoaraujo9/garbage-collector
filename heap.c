@@ -21,10 +21,8 @@ void heap_init(Heap* heap, unsigned int size, void (*collector)(void *, int)){
     heap->to = heap->base;
     heap->from = heap->base + heap->size / 2;
 
-    heap->wip = (List*)malloc(sizeof(List));
-    list_init(heap->wip);
+    heap->wip_h = NULL;
 
-    heap->base = heap->from;
     heap->top = heap->from;
     heap->limit = heap->from + heap->size / 2;
   #endif
