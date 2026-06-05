@@ -1,19 +1,79 @@
-compile and run the code as follows:
+<div align="center">
+  <h3 align="center">garbage collector</h3>
+  <p align="center">
+    A collection of toy garbage collector implementations.
+  </p>
+</div>
 
-$ make GC=<sweep, compact, copy> # chose either one
+## About
+
+This repository contains an implementation of some garbage collection algorythms with minor optimizations and a toy virtual machine done for Implementation of Programming Languages class.
+
+## Algorythms Supported
+
+- [x] Mark Sweep.
+- [x] Mark Compact.
+- [x] Copy Collect.
+
+## Implementation
+I started the project by implementing the simplest and most straightforward algorythm, the Mark and Sweep. In order to do that i had to tackle some traps the teacher left in the template - specifically i had to move the memory allocation to before the bistree node was created rather than after. Then I implemented compact() for Mark Compact which was more troublesome due to casts and segmentation faults. After tweeking my_malloc and providing some simple messages to assess garbage collection share of the time spent computing, I implemented the Copy Collect strategy on the slides which was harder to get a grasp of but once I understood how it worked it was straightforward to implement. Then came the fun part.
+
+I implemented several optimizations. Mark Sweep's free list is represented as a chain of free memory spaces connected by it's header's repurpused forward pointer. The heap stores only the first. They are ordered by size so it only throws the flag and says there is no more memory to allocate if it reaches end without finding a large enough memmory slot. I should mention that at first I had the order logic down with list functions for generalization and only after that I optimized it as stated.
+
+Simmilarly, Copy Collect holds only a pointer to the first memory slot in the "worklist" and has identical logic apart for the ordering and flexible size support. The interesting bit is that it repurposed also the unsused forward pointer in the header added to the worklist that would otherwise be dorment until the remaining logic of Copy Collection made use of it.
+I also made the garbage collection be flexible to multiple structure representations by using an unsigned int field in memory block header specifiying which fields were ints and pointers through bitwise operations (each bit represents a field up to explicit number of fields - rest are zeros). Having said that, the garbage collection has no notion of which structure occupies the field, it just accesses the field in the block header to get the necessary information for performing collection.
+
+With that came the last optimization, there isn't a notion of field offsets in block header, they are calculated through a compile time macro.
+
+Before some of the optimizations I fixed the toyvm source code, adapted it for readability and added some debug messages so it was cleaner to read.
+
+## Running
+
+Compile and run the code as follows:
+
+```bash
+$ make GC=<sweep, compact, copy> EXEC=mutator # choose one GC strategy
+$ # examples
 $ ./mutator 0.5 100 100000
 $ ./mutator 0.1 100 100000
 $ ./mutator 0.9 100 100000
 $ ./mutator 80 10 1000000
+```
 
-for a simple test
+The `mutator` executable expects three arguments:
 
+```bash
+$ ./mutator <allocation_probability> <roots_size> <iterations>
+```
+
+For example:
+
+```bash
+$ ./mutator 0.5 100 100000
+```
+
+To compile and run the toy virtual machine:
+
+```bash
+$ make GC=<sweep, compact, copy> EXEC=toyvm # choose one GC strategy
+$ # example
+$ ./toyvm 100 400 100000 64
+```
+
+the `toyvm` executable expects four arguments:
+
+```bash
+$ ./toyvm <threshold> <roots_size> <unused> <stack_size>
+```
+
+for a simple test:
+
+```bash
 $ make test
+```
 
-to clean and leave just the source code
+to clean and leave just the source code:
 
+```bash
 $ make clean
-
-generalize
-
-write what i have done
+```

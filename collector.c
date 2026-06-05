@@ -334,7 +334,7 @@ void *copy(void *from) {
     from_header->forward = to;
     heap->top = (char *)to_header + size;
 
-    /* Add to work list */
+    /* Add to "worklist" */
 
     to_header->forward = NULL;
 
