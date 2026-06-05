@@ -10,7 +10,7 @@
 
 #define MAX_FIELDS 8
 
-#define OFFSET(i) ((i == 0 ? sizeof(char)  : sizeof(char *))
+#define OFFSET(i) (i == 0 ? sizeof(int) : sizeof(char *))
 
 typedef struct __attribute__((packed)) {
   unsigned int marked;

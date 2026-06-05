@@ -40,18 +40,20 @@ void mark(char *object) {
 
     header->marked = 1;
 
-    size_t offset = 0;
+    char *offset = (char *)object;
 
     for (int i = 0; i < header->n_fields; i++) {
+        bool is_pointer = (header->field_types & (1u << i));
+
         // create mask for bit i and AND with field_types
         // if result is 0 => bit was 0.. so not a pointer
-        if (!(header->field_types & (1u << i))){
+        if (!is_pointer){
+            offset += OFFSET(is_pointer);
             continue;
         }
 
-        void **field = (void **)((char *)object + offset);
-
-        offset += OFFSET((header->field_types & (1u << i))));
+        void **field = (void **)offset;
+        offset += OFFSET(is_pointer);
 
         if (*field != NULL)
             mark((char *)(*field));
@@ -176,15 +178,18 @@ void compact(void *objects, int n_objects) {
         if (header->marked) {
             char *object = scan + sizeof(_block_header);
 
-            size_t offset = 0;
+            char *offset = (char *)object;
 
             for (int i = 0; i < header->n_fields; i++) {
-                if (!(header->field_types & (1u << i)))
+                bool is_pointer = (header->field_types & (1u << i));
+
+                if (!is_pointer){
+                    offset += OFFSET(is_pointer);
                     continue;
+                }
 
-                void **field = (void **)((char *)object + offset);
-
-                offset += OFFSET((header->field_types & (1u << i))));
+                void **field = (void **)offset;
+                offset += OFFSET(is_pointer);
 
                 if (*field != NULL) {
                     _block_header *field_header =
@@ -282,15 +287,18 @@ void collect(void *objects, int n_objects) {
 
         _block_header *header = (_block_header *)((char *)object - sizeof(_block_header));
 
-        size_t offset = 0;
+        char *offset = (char *)object;
 
         for (int i = 0; i < header->n_fields; i++) {
-            if (!(header->field_types & (1u << i)))
+            bool is_pointer = (header->field_types & (1u << i));
+
+            if (!is_pointer){
+                offset += OFFSET(is_pointer);
                 continue;
+            }
 
-            void **field = (void **)((char *)object + offset);
-
-            offset += OFFSET((header->field_types & (1u << i))));
+            void **field = (void **)offset;
+            offset += OFFSET(is_pointer);
 
             process(field);
         }
