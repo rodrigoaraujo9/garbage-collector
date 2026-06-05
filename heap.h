@@ -12,11 +12,14 @@
 
 #define OFFSET(i) (i == 0 ? sizeof(int) : sizeof(char *))
 
-typedef struct __attribute__((packed)) {
+/* current architecture doesn't support multiple size of structure without
+ * wasting space (no shrimp *nk) */
+
+typedef struct {
   unsigned int marked;
   unsigned int size;
   unsigned int n_fields;
-  unsigned int field_types; // bitwise each bit represents a field type in order
+  unsigned int field_types;
   void *forward;
 } _block_header;
 
@@ -25,13 +28,12 @@ typedef struct {
   char *base;
   char *top;
   char *limit;
-  _block_header
-      *first_freeb_h; // points to the first free space -> it is a blockheader
+  _block_header *first_freeb_h;
   void (*collector)(void *, int);
 #ifdef COPY_COLLECT
-  char *fromSpace;
-  char *toSpace;
-  List *workList;
+  char *from;
+  char *to;
+  List *wip;
 #endif
 } Heap;
 

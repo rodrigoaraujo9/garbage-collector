@@ -1,7 +1,3 @@
-/*
- * bistree.h
- */
-
 #ifndef BISTREE_H
 #define BISTREE_H
 

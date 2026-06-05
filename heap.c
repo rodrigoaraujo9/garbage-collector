@@ -1,9 +1,3 @@
-/*
- * the heap
- */
-
-// use bitree init to set things up instead of being directly in the malloc ??
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -24,15 +18,15 @@ void heap_init(Heap* heap, unsigned int size, void (*collector)(void *, int)){
   #endif
 
   #ifdef COPY_COLLECT
-    heap->toSpace = heap->base;
-    heap->fromSpace = heap->base + heap->size / 2;
+    heap->to = heap->base;
+    heap->from = heap->base + heap->size / 2;
 
-    heap->workList = (List*)malloc(sizeof(List));
-    list_init(heap->workList);
+    heap->wip = (List*)malloc(sizeof(List));
+    list_init(heap->wip);
 
-    heap->base = heap->fromSpace;
-    heap->top = heap->fromSpace;
-    heap->limit = heap->fromSpace + heap->size / 2;
+    heap->base = heap->from;
+    heap->top = heap->from;
+    heap->limit = heap->from + heap->size / 2;
   #endif
 
     return;
@@ -53,9 +47,7 @@ void* my_malloc(unsigned int nbytes) {
         h->size = nbytes;
 
         h->n_fields = 3;
-        h->field_types = 0;
-
-        h->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
+        h->field_types = (1u << 1) | (1u << 2);
 
       #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
@@ -71,20 +63,17 @@ void* my_malloc(unsigned int nbytes) {
     _block_header *free = heap->first_freeb_h;
     _block_header *prev = NULL;
     while (free!=NULL && free->size < nbytes) {
-        // iterate from freeb until the first free block that accomodates the nbytes
         prev = free;
         free = free->forward;
     }
 
     if (free != NULL) {
         free->marked = 0;
-        // free->size = nbytes;   // no shrink logic yet -> only when it propperly splits
+
         free->n_fields = 3;
-        free->field_types = 0;
+        free->field_types = (1u << 1) | (1u << 2);
 
-        free->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
-
-        if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
+        if (free == heap->first_freeb_h) heap->first_freeb_h = free->forward;
         if (prev != NULL) prev->forward = free->forward;
 
         free->forward = NULL;
@@ -119,10 +108,9 @@ void* my_malloc(unsigned int nbytes) {
 
         h->marked = 0;
         h->size = nbytes;
-        h->n_fields = 3;
-        h->field_types = 0;
 
-        h->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
+        h->n_fields = 3;
+        h->field_types = (1u << 1) | (1u << 2);
 
         h->forward = NULL;
 
@@ -135,19 +123,16 @@ void* my_malloc(unsigned int nbytes) {
   #ifdef MARK_SWEEP
     free = heap->first_freeb_h;
     prev = NULL;
-    while (free!=NULL && free->size < nbytes) {
-        // iterate from freeb until the first free block that accomodates the nbytes
+    while (free != NULL && free->size < nbytes) {
         prev = free;
         free = free->forward;
     }
 
     if (free != NULL) {
         free->marked = 0;
-        // free->size = nbytes;   // no shrink logic yet -> only when it propperly splits
-        free->n_fields = 3;
-        free->field_types = 0;
 
-        free->field_types = (1u << 1) | (1u << 2); // 000...110 -> 1 is pointer and 0 is constant
+        free->n_fields = 3;
+        free->field_types = (1u << 1) | (1u << 2);
 
         if (free==heap->first_freeb_h) heap->first_freeb_h = free->forward;
         if (prev != NULL) prev->forward = free->forward;
