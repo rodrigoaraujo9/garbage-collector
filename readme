@@ -60,19 +60,19 @@ $ # example
 $ ./toyvm 100 400 100000 64
 ```
 
-the `toyvm` executable expects four arguments:
+The `toyvm` executable expects four arguments:
 
 ```bash
 $ ./toyvm <threshold> <roots_size> <unused> <stack_size>
 ```
 
-for a simple test:
+For a simple test:
 
 ```bash
 $ make test
 ```
 
-to clean and leave just the source code:
+To clean and leave just the source code:
 
 ```bash
 $ make clean
