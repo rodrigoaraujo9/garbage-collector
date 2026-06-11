@@ -246,7 +246,7 @@ void mark_compact_gc(void* objects, int n_objects) {
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */
 
-/* Copy Collection */
+/* Cheney-style Copy Collection */
 
 void collect(void *objects, int n_objects) {
   #ifdef COPY_COLLECT

@@ -8,9 +8,6 @@
 
 #define OFFSET(i) (i == 0 ? sizeof(int) : sizeof(char *))
 
-/* current architecture doesn't support multiple size of structure without
- * wasting space (no shrimp *nk) */
-
 typedef struct {
   unsigned int marked;
   unsigned int size;

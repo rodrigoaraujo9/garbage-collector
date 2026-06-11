@@ -36,7 +36,7 @@ OBJFLS = $(MAIN_OBJ) \
 CC = gcc
 LL = gcc
 
-CFLAGS = -Wall $(GCFLAG)
+CFLAGS = -Wall $(GCFLAG) -O3
 LFLAGS =
 
 $(EXEC): $(OBJFLS)
