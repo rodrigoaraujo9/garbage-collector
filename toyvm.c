@@ -15,7 +15,7 @@
 #error "*error* Define only one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
 #endif
 
-#define HEAP_SIZE (32 * 1024)  /* 2 KByte */
+#define HEAP_SIZE (2 * 1024)  // 2 KB
 
 typedef enum {
     LLP  = 0x01,
@@ -44,10 +44,8 @@ int main(int argc, char* argv[] ) {
         return 1;
     }
 
-    /* initialize threshold */
     VM_threshold = atoi(argv[1]);
 
-    /* initialize roots */
     VM_roots_size = atoi(argv[2]);
     VM_roots = (BisTree*)malloc(VM_roots_size * sizeof(BisTree));
 
@@ -59,14 +57,9 @@ int main(int argc, char* argv[] ) {
     for (int i = 0; i < VM_roots_size; i++)
          bistree_init(&VM_roots[i]);
 
-    /*
-     * expose VM roots to the garbage collector
-     * these names must match globals.h
-     */
     roots = VM_roots;
     max_roots = VM_roots_size;
 
-    /* initialize stack */
     VM_stack_size = atoi(argv[4]);
     VM_stack = (int*)malloc(VM_stack_size * sizeof(int));
 
@@ -77,7 +70,6 @@ int main(int argc, char* argv[] ) {
 
     VM_stack_top = 0;
 
-    /* initialize heap */
     heap = (Heap*)malloc(sizeof(Heap));
 
     if (heap == NULL) {
@@ -95,21 +87,19 @@ int main(int argc, char* argv[] ) {
        #error "*error*     you must define one GC strategy: MARK_SWEEP, MARK_COMPACT, or COPY_COLLECT"
     #endif
 
-    /* initialize program */
     char VM_program[] = {
         LLP,  0xc4,
         RND,  0x14,
         SEL,  PAD,
         RND,  0xc4,
-        BLT,  0x0e, /* __add = 14 = 0x0e */
+        BLT,  0x0e, // __add = 14 = 0x0e
         DEL,  PAD,
-        J,    0x10, /* __end = 16 = 0x10 */
+        J,    0x10, // __end = 16 = 0x10
         ADD,  PAD,
-        JLP,  0x02, /* __loop = 2 = 0x02 */
+        JLP,  0x02, // __loop = 2 = 0x02
         QUIT, 0x00
     };
 
-    /* run program */
     char* pc = VM_program;
 
     for( ; ; ) {

@@ -1,0 +1,6 @@
+implement a hash table structure
+index free spaces through hash map
+
+space being freed ->
+                    -> put in list of (size, list of pointers)
+                      -> that behaves like hash fuct indexed by size for fast lookups
