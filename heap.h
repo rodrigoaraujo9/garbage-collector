@@ -13,7 +13,9 @@ typedef struct {
   unsigned int size;
   unsigned int n_fields;
   unsigned int field_types;
+#ifndef MARK_SWEEP
   void *forward;
+#endif
 } _block_header;
 
 typedef struct {
@@ -27,9 +29,14 @@ typedef struct {
   char *to;
   _block_header *wip_h; // header for first mem slot in "worklist"
 #elif MARK_SWEEP
-  _block_header *free_h; // header for first mem slot in "freelist"
+  List *free; // header for first mem slot in "freelist"
 #endif
 } Heap;
+
+typedef struct {
+  unsigned int slotsize;
+  List *slots;
+} slot_pointers;
 
 void heap_init(Heap *heap, unsigned int size, void (*collector)(void *, int));
 

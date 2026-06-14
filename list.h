@@ -4,14 +4,21 @@
 #include "bool.h"
 #include <stddef.h>
 
+// Adapted notion of list.
+// "General List" will be used as "hash table"
+//    - for the list nodes in here, data is sizeofspace ++ list (list of pointers) -> use a struct
+//    - ordered by size / addr (*)
+// "List of Pointers"
+//    - for list nodes data is pointer
+
 typedef struct ListNode_ {
-  void *data;
+  void *data; // used to pass list of pointers
   unsigned int size;
   struct ListNode_ *next;
 } ListNode;
 
 typedef struct List_ {
-  int size;
+  unsigned int size;
   ListNode *first;
 } List;
 

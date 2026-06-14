@@ -6,7 +6,7 @@
         "${workspaceFolder}/**"
       ],
       "defines": [
-        "COPY_COLLECT"
+        "MARK_SWEEP"
       ],
       "compilerPath": "/usr/bin/clang",
       "cStandard": "c99",

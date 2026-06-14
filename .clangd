@@ -1,0 +1,7 @@
+CompileFlags:
+    Add:
+        - -Wall
+        - -Wextra
+        - -Wpedantic
+        - -std=c23
+        - -DMARK_SWEEP

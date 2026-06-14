@@ -95,7 +95,7 @@ void sweep() {
         current_header = next_header;
     }
   #else
-    printf("*error* to use sweep() activate MARK_COMPACT");
+    printf("*error* to use sweep() activate MARK_SWEEP");
     exit(1);
   #endif
 }
