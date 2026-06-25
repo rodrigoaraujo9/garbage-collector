@@ -4,4 +4,4 @@ CompileFlags:
         - -Wextra
         - -Wpedantic
         - -std=c23
-        - -DCOPY_COLLECT
+        - -DMARK_SWEEP
