@@ -135,8 +135,9 @@ void* my_malloc(unsigned int nbytes) {
         h->n_fields = 3;
         h->field_types = (1u << 1) | (1u << 2);
 
+      #if defined(MARK_COMPACT) || defined(COPY_COLLECT)
         h->forward = NULL;
-
+      #endif
         void *p = heap->top + sizeof(_block_header);
         heap->top += total;
 
