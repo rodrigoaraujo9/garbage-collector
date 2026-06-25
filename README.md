@@ -28,6 +28,10 @@ With that came the last optimization, there isn't a notion of field offsets in b
 
 Before some of the optimizations I fixed the toyvm source code, adapted it for readability and added some debug messages so it was cleaner to read.
 
+## After Delivery
+
+When I implemented the project as I described, the free slot list was somewhat of a linked list. This can be really slow for cases where we want the biggest blocksizes and there are a lot of simmilar sized slots. So, I made it into a"hash table" (sort of) where each statically allowed blocksize (in the free array indexed by it's size in bytes for simplicity) has a list of avaliable slots of that size. That simplified the code tremendously and made it a lot more optimized while searching for avaliable free blocks.
+
 ## Running
 
 Compile and run the code as follows:
