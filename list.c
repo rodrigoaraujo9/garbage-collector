@@ -22,7 +22,7 @@ bool list_isempty(List* list) {
 }
 
 void list_addfirst(List* list, void* data, size_t size) {
-  ListNode* node = (ListNode*)my_malloc(sizeof(ListNode));
+  ListNode* node = (ListNode*)malloc(sizeof(ListNode));
 
   node->data = data;
   node->next = list->first;
@@ -34,7 +34,7 @@ void list_addfirst(List* list, void* data, size_t size) {
 }
 
 void list_addlast(List* list, void* data, size_t size) {
-  ListNode* node = (ListNode*)my_malloc(sizeof(ListNode));
+  ListNode* node = (ListNode*)malloc(sizeof(ListNode));
 
   node->data = data;
   node->size = size;
@@ -109,4 +109,3 @@ void list_print(List* list) {
    }
    printf("]\n");
 }
-

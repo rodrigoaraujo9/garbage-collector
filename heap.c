@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -15,8 +16,9 @@ void heap_init(Heap* heap, unsigned int size, void (*collector)(void *, int)){
     heap->collector = collector;
 
   #ifdef MARK_SWEEP
-    heap->free = (List*)my_malloc(sizeof(List)); // using my_malloc instead of actual malloc
-    list_init(heap->free);
+    for (int i=0; i<MAX_SIZE; i++) {
+        list_init(&heap->free[i]);
+    }
   #endif
 
   #ifdef COPY_COLLECT
@@ -39,87 +41,36 @@ void heap_destroy(Heap* heap) {
 
 /* Extensions to list to handle free */
 
-void heap_free(void* slot, size_t size) { // data is pointer we want to add to list of pointers
+void heap_free(void* slot, size_t size) {
  #ifdef MARK_SWEEP
-  if (list_isempty(heap->free) || size == ((slot_pointers *)heap->free->first->data)->slotsize) {
-    List *list_of_pointers = ((slot_pointers *)heap->free->first->data)->slots;
-    list_addlast(list_of_pointers, slot, sizeof(void *));
+    if (size>MAX_SIZE){
+        printf("*error* tried to use an unsupported sized structure in heap_free()\n");
+        exit(1);
+    }
+    if (slot==NULL) return;
+    list_addlast(&heap->free[size], slot, size);
     return;
-  }
-  else if (size < ((slot_pointers *)heap->free->first->data)->slotsize) {
-    List *list_of_pointers = my_malloc(sizeof(List));
-    list_init(list_of_pointers);
-    list_addlast(list_of_pointers, slot, sizeof(void *));
-
-    ListNode* node = (ListNode*)my_malloc(sizeof(ListNode));
-
-    slot_pointers *data = my_malloc(sizeof(slot_pointers));
-
-    data->slots = list_of_pointers;
-    data->slotsize = size;
-    node->data = data;
-    node->size = sizeof(slot_pointers);
-    node->next = heap->free->first;
-    heap->free->first = node;
-  }
-
-  // find place to insert either pointer into existing list of pointers or new list of pointer with our pointer
-  ListNode* needle = heap->free->first;
-
-  while (needle->next != NULL && ((slot_pointers *)needle->next->data)->slotsize < size) {
-    needle = needle->next;
-  }
-
-  if(needle->next != NULL && ((slot_pointers *)needle->next->data)->slotsize == size) { // if this case happens it means that there is already a list for this spacesize to place our pointer
-    List *list_of_pointers = ((slot_pointers *)needle->next->data)->slots;
-    list_addlast(list_of_pointers, slot, sizeof(void *));
-  } else { // handle list creation with pointer here
-    List *list_of_pointers = my_malloc(sizeof(List));
-    list_init(list_of_pointers);
-    list_addlast(list_of_pointers, slot, sizeof(void *));
-    // insert in middle of needle and needle->next
-    ListNode* node = (ListNode*)my_malloc(sizeof(ListNode));
-
-    slot_pointers *data = my_malloc(sizeof(slot_pointers));
-
-    data->slots = list_of_pointers;
-    data->slotsize = size;
-    node->data = data;
-    node->size = sizeof(slot_pointers);
-    node->next = needle->next;
-    needle->next = node;
-  }
   #else
-    printf("*error* to use heap_add_pointer_to_free() activate MARK_SWEEP");
+    printf("*error* to use heap_free() activate MARK_SWEEP");
     exit(1);
   #endif
 }
 
-// will get the smaller size of slot that accomodates the desired size or NULL if can't get.
-// pop the first or last (whatever) of that list and use it (get pointer and remove node cleanly)
-// if list_of_pointers becomes empty removes entire node from graph
-void *heap_pop_free(unsigned int size) {
-  if (list_isempty(heap->free) || size < ((slot_pointers *)heap->free->first->data)->slotsize) {
-    return NULL;
-  }
-
-  ListNode* needle = heap->free->first;
-
-  while (needle->next != NULL && ((slot_pointers *)needle->next->data)->slotsize < size) {
-    needle = needle->next;
-  }
-
-  void *slot = list_getfirst(((slot_pointers *)needle->next->data)->slots);
-  list_removefirst(((slot_pointers *)needle->next->data)->slots);
-
-  if (list_isempty(((slot_pointers *)needle->next->data)->slots)) {
-      list_addlast(heap->free, needle->next->data , ((slot_pointers *)needle->next->data)->slotsize);
-      needle->next = needle->next->next;
-  }
-
-  return slot;
+// to use must guard case where returns null
+void *heap_alloc(size_t size) {
+  #ifdef MARK_SWEEP
+    if (size>MAX_SIZE){
+        printf("*error* tried to use an unsupported sized structure in heap_pop_free() %d\n", (int)size);
+        exit(1);
+    }
+    void* slot = list_getfirst(&heap->free[size]);
+    list_removefirst(&heap->free[size]);
+    return slot;
+  #else
+    printf("*error* to use heap_pop_free() activate MARK_SWEEP");
+    exit(1);
+  #endif
 }
-
 
 void* my_malloc(unsigned int nbytes) {
     unsigned int total = sizeof(_block_header) + nbytes;
@@ -144,28 +95,16 @@ void* my_malloc(unsigned int nbytes) {
     }
 
   #ifdef MARK_SWEEP
-    _block_header *free = heap->free_h;
-    _block_header *prev = NULL;
-    while (free!=NULL && free->size < nbytes) {
-        prev = free;
-        free = free->forward;
-    }
-
+    void* free = heap_alloc(nbytes);
     if (free != NULL) {
-        free->marked = 0;
+        _block_header *free_h = (_block_header *)((char *)free - sizeof(_block_header));
+        free_h->marked = 0;
 
-        free->n_fields = 3;
-        free->field_types = (1u << 1) | (1u << 2);
+        free_h->n_fields = 3;
+        free_h->field_types = (1u << 1) | (1u << 2);
 
-        if (free == heap->free_h) heap->free_h = free->forward;
-        if (prev != NULL) prev->forward = free->forward;
-
-        free->forward = NULL;
-
-        return (char *)free + sizeof(_block_header);
+        return free;
     }
-
-
   #endif
 
     printf("\n\n");
@@ -205,25 +144,15 @@ void* my_malloc(unsigned int nbytes) {
     }
 
   #ifdef MARK_SWEEP
-    free = heap->free_h;
-    prev = NULL;
-    while (free != NULL && free->size < nbytes) {
-        prev = free;
-        free = free->forward;
-    }
-
+    free = heap_alloc(nbytes);
     if (free != NULL) {
-        free->marked = 0;
+        _block_header *free_h = (_block_header *)((char *)free - sizeof(_block_header));
+        free_h->marked = 0;
 
-        free->n_fields = 3;
-        free->field_types = (1u << 1) | (1u << 2);
+        free_h->n_fields = 3;
+        free_h->field_types = (1u << 1) | (1u << 2);
 
-        if (free==heap->free_h) heap->free_h = free->forward;
-        if (prev != NULL) prev->forward = free->forward;
-
-        free->forward = NULL;
-
-        return (char *)free + sizeof(_block_header);
+        return free;
     }
   #endif
 

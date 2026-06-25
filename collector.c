@@ -60,7 +60,9 @@ void mark(char *object) {
 
 void sweep() {
   #ifdef MARK_SWEEP
-    heap->free_h = NULL;
+    for (int i=0; i<MAX_SIZE; i++) {
+        list_init(&heap->free[i]);
+    }
 
     _block_header *current_header = (_block_header *)heap->base;
 
@@ -73,21 +75,7 @@ void sweep() {
         }
 
         if (!current_header->marked) {
-            _block_header *free = heap->free_h;
-            while (free != NULL && free->size < current_header->size) {
-                free = free->forward;
-            }
-            if (free == heap->free_h) {
-                current_header->forward = NULL;
-                heap->free_h = current_header;
-            } else {
-                _block_header *prev = heap->free_h;
-                while (prev->forward != free) {
-                    prev = prev->forward;
-                }
-                prev->forward = current_header;
-                current_header->forward = free;
-            }
+            heap_free(((char *)current_header + sizeof(_block_header)), current_header->size);
         } else {
             current_header->marked = 0;
         }

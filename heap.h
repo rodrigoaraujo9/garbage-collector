@@ -5,6 +5,7 @@
 #include "list.h"
 
 #define MAX_FIELDS 8
+#define MAX_SIZE 24 // bytes
 
 #define OFFSET(i) (i == 0 ? sizeof(int) : sizeof(char *))
 
@@ -29,7 +30,7 @@ typedef struct {
   char *to;
   _block_header *wip_h; // header for first mem slot in "worklist"
 #elif MARK_SWEEP
-  List *free; // header for first mem slot in "freelist"
+  List free[MAX_SIZE]; // array of lists of spaces
 #endif
 } Heap;
 
@@ -41,6 +42,8 @@ typedef struct {
 void heap_init(Heap *heap, unsigned int size, void (*collector)(void *, int));
 
 void heap_destroy(Heap *heap);
+
+void heap_free(void *slot, size_t size);
 
 void *my_malloc(unsigned int nbytes);
 
